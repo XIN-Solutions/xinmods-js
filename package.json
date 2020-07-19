@@ -1,0 +1,15 @@
+{
+  "name": "xinmods",
+  "version": "1.0.0",
+  "description": "Javascript implementation for XIN Mods CMS interactions",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Marnix Kok",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "axios": "^0.19.2",
+    "qs": "^6.9.4"
+  }
+}
