@@ -16,12 +16,7 @@
 
 const AxiosModule = require('axios');
 const qs = require('qs');
-const http = require('http');
-const https = require('http');
-const httpAgent = new http.Agent({ keepAlive: true });
-const httpsAgent = new https.Agent({ keepAlive: true });
 
-const PackageCommands = require('./PackageCommands.js');
 const QueryBuilder = require('./QueryBuilder.js');
 
 const DefaultOptions = {
@@ -31,6 +26,23 @@ const DefaultOptions = {
 
 };
 
+/**
+ * @typedef QueryResult
+ * @property {boolean} success - true if successful
+ * @property {string} message - the message from the query
+ * @property {QueryResultUUID[]} uuids - a list of uuid information, one for each result
+ * @property {number} totalSize - the number of results
+ * @property {object} documents - map with uuid as key and
+ *
+ * @typedef QueryResultUUID
+ * @property {string} uuid - the uuid of this document
+ * @property {stirng} path - full JCR path for this document
+ * @property {string} url - the local URL document details
+ * @property {string} type - the type of this result
+ */
+
+
+
 class HippoConnection {
 
 	host;
@@ -38,6 +50,7 @@ class HippoConnection {
 	password;
 	options;
 	axios;
+	pathCache;
 
 	/**
 	 * Initialise the hippo connection.
@@ -52,15 +65,14 @@ class HippoConnection {
 		this.host = host;
 		this.user = user;
 		this.password = password;
+		this.pathCache = {};
 
 		this.axios = AxiosModule.create({
-			httpAgent,
-			httpsAgent,
 			timeout: 1000,
 			baseURL: this.host,
 			paramsSerializer(params) {
 				return qs.stringify(params, {
-					indices: false
+					indices: false,
 				});
 			},
 			auth: {
@@ -71,15 +83,6 @@ class HippoConnection {
 
 		this.options = Object.assign({}, DefaultOptions, options || {});
 	}
-
-	/**
-	 * Commands to deal with the package manager.
-	 *
-	 * @returns {PackageCommands}
-	 */
-	// packages() {
-	// 	return new PackageCommands(this);
-	// }
 
 	/**
 	 * Query builder instance returned
@@ -96,35 +99,96 @@ class HippoConnection {
 	newClause() {
 		return new QueryBuilder(this).newClause();
 	}
-
 	
-	async executeQuery(query) {
+	
+	/**
+	 * Execute the query in `query`. Depending on the options that are provided we might have
+	 * to do additional things.
+	 *
+	 * @param query     {string} the query to execute
+	 * @param options   {object}
+	 * @param options.documents {boolean} if set to true transform the uuid results into documents (default: true).
+	 * @param options.namespace {boolean} keep the namespace information in the documents? (default: false)
+	 * @returns {Promise<QueryResult>}
+	 */
+	async executeQuery(query, options = {}) {
+		
+		const defaultOptions = {
+			namespace: true,
+			documents: true
+		};
+		
+		const opts = Object.assign({}, defaultOptions, options);
+		
 		try {
 			
-			const response = await this.axios.get(`${this.options.xinApi}/content/query`, {
-				params: {
-					query
-				}
-			});
+			const response = await this.axios.get(`${this.options.xinApi}/content/query?query=${encodeURIComponent(query)}`);
 			
 			if (!response || !response.data) {
 				return null;
 			}
 			
+			// if set to true, let's go get the actual documents for this result.
+			if (opts.documents) {
+				
+				response.data.documents = {};
+				
+				for (const resultRow of response.data.uuids) {
+					const {uuid} = resultRow;
+					const doc = await this.getDocumentByUuid(uuid);
+					
+					response.data.documents[uuid] = opts.namespace ? doc : this.sanitiseDocument(doc);
+				}
+			}
+			
 			return response.data;
 		}
 		catch (ex) {
+			
 			if (!ex.response) {
 				console.error("Something happened: ", ex);
 			}
+			
 			if (ex.response.status === 401) {
 				throw new Error("Unauthorized request", ex);
 			}
+			
+			if (ex.response.status === 501) {
+				console.log("Something wrong with the query, check Hippo CMS server logs for a detailed report.");
+				throw new Error(ex.response.data.message);
+			}
+
 			throw ex;
 		}
 	}
 	
-
+	
+	/**
+	 * Remove the namespace from objects
+	 *
+	 * @param object    the object to adapt
+	 */
+	sanitiseDocument(object) {
+		const newObj = {};
+		
+		for (const prop in object) {
+		
+			const val = object[prop];
+			const cleanKey = prop.indexOf(":") === -1 ? prop : prop.split(":")[1];
+			const type = typeof(val);
+			
+			if (type === 'object') {
+				newObj[cleanKey] = this.sanitiseDocument(val);
+			} else {
+				newObj[cleanKey] = val;
+			}
+		}
+		
+		return newObj;
+	}
+	
+	
+	
 	/**
 	 * Simple document query:
 	 * https://documentation.bloomreach.com/14/library/concepts/rest/content-rest-api/document-collection-resource.html

@@ -1,22 +1,33 @@
-function operator(op, field, value) {
-	return {op, field, value};
-}
 
 /**
- * Hippo
+ * A query builder class with some functions that hand off to other classes
  */
 class QueryBuilder {
 
 	hippo;
-
+	
+	/**
+	 * Initialise the query builder
+	 *
+	 * @param hippo {HippoConnection} connection instance
+	 */
 	constructor(hippo) {
 		this.hippo = hippo;
 	}
-
+	
+	/**
+ 	 * @returns {Query} a new query instance
+	 */
 	newQuery() {
 		return new Query(this.hippo);
 	}
-
+	
+	/**
+	 * Returns a new WHERE clause, you might want to use this when you're building
+	 * a clause dynamically. You can then set it in `.where()` of the query builder.
+	 *
+	 * @returns {ClauseExpression} a new WHERE expression clause
+	 */
 	newClause() {
 		return new ClauseExpression('where')
 	}
@@ -24,7 +35,22 @@ class QueryBuilder {
 	
 }
 
+/**
+ * Helper function to build a little operator map
+ * @param op        the operator name
+ * @param field     the field it applies to
+ * @param value     the value to set
+ *
+ * @returns {{op: *, field: *, value: *}}
+ */
+function operator(op, field, value) {
+	return {op, field, value};
+}
 
+/**
+ * An object that contains information about clauses in the where clause, this
+ * can be the first level, or a deeper down compound expression (like OR and AND).
+ */
 class ClauseExpression {
 	
 	parent;
@@ -39,87 +65,200 @@ class ClauseExpression {
 		this.level = level;
 	}
 	
+	/**
+	 * Field equals a certain value
+	 *
+	 * @param field the field to check
+	 * @param value the value to check for
+	 *
+	 * @returns {ClauseExpression}
+	 */
 	equals(field, value) {
-		this.expressions.push(operator('=', field, value));
+		this.expressions.push(operator('eq', field, value));
 		return this;
 	}
 	
+	/**
+	 * Field equals a certain value and we don't care about the case
+	 *
+	 * @param field the field to check
+	 * @param value the value to check for
+	 *
+	 * @returns {ClauseExpression}
+	 */
 	equalsIgnoreCase(field, value) {
-		this.expressions.push(operator('i=', field, value));
+		this.expressions.push(operator('ieq', field, value));
 		return this;
 	}
 	
+	/**
+	 * Field does not equal a certain value
+	 *
+	 * @param field the field to check
+	 * @param value the value to check for
+	 *
+	 * @returns {ClauseExpression}
+	 */
 	notEquals(field, value) {
-		this.expressions.push(operator('!=', field, value));
+		this.expressions.push(operator('neq', field, value));
 		return this;
 	}
 	
+	/**
+	 * Field does not equal a certain value  and we don't care about the case
+	 *
+	 * @param field the field to check
+	 * @param value the value to check for
+	 *
+	 * @returns {ClauseExpression}
+	 */
 	notEqualsIgnoreCase(field, value) {
-		this.expressions.push(operator('i!=', field, value));
+		this.expressions.push(operator('ineq', field, value));
 		return this;
 	}
 	
+	/**
+	 * Field contains a certain value
+	 *
+	 * @param field the field to check
+	 * @param value the value to check for
+	 *
+	 * @returns {ClauseExpression}
+	 */
 	contains(field, value) {
 		this.expressions.push(operator('contains', field, value));
 		return this;
 	}
 	
+	/**
+	 * Field does not contain a certain value
+	 *
+	 * @param field the field to check
+	 * @param value the value to check for
+	 *
+	 * @returns {ClauseExpression}
+	 */
 	notContains(field, value) {
 		this.expressions.push(operator('!contains', field, value));
 		return this;
 	}
 	
+	/**
+	 * Field is null
+	 *
+	 * @param field the field to check
+	 * @param value the value to check for
+	 *
+	 * @returns {ClauseExpression}
+	 */
 	isNull(field, value) {
 		this.expressions.push(operator('null', field, value));
 		return this;
 	}
 	
+	/**
+	 * Field is not null
+	 *
+	 * @param field the field to check
+	 * @param value the value to check for
+	 *
+	 * @returns {ClauseExpression}
+	 */
 	isNotNull(field, value) {
 		this.expressions.push(operator('notnull', field));
 		return this;
 	}
 	
 	
+	/**
+	 * Field greater than
+	 *
+	 * @param field the field to check
+	 * @param value the value to check for
+	 *
+	 * @returns {ClauseExpression}
+	 */
 	gt(field, value) {
-		this.expressions.push(operator('>', field, value));
+		this.expressions.push(operator('gt', field, value));
 		return this;
 	}
 	
+	/**
+	 * Field greater than or equal to
+	 *
+	 * @param field the field to check
+	 * @param value the value to check for
+	 *
+	 * @returns {ClauseExpression}
+	 */
 	gte(field, value) {
-		this.expressions.push(operator('>=', field, value));
+		this.expressions.push(operator('gte', field, value));
 		return this;
 	}
 	
 	
+	/**
+	 * Field lower than a certain value
+	 *
+	 * @param field the field to check
+	 * @param value the value to check for
+	 *
+	 * @returns {ClauseExpression}
+	 */
 	lt(field, value) {
-		this.expressions.push(operator('<', field, value));
+		this.expressions.push(operator('lt', field, value));
 		return this;
 	}
-
 	
+	
+	/**
+	 * Field lower than or equal to a certain value
+	 *
+	 * @param field the field to check
+	 * @param value the value to check for
+	 *
+	 * @returns {ClauseExpression}
+	 */
 	lte(field, value) {
-		this.expressions.push(operator('<=', field, value));
+		this.expressions.push(operator('lte', field, value));
 		return this;
 	}
-
-
+	
+	
+	/**
+	 * Creates a new compound expression for 'and'
+	 * @returns {ClauseExpression}
+	 */
 	and() {
 		const expr = new ClauseExpression('and', this, this.level + 1);
 		this.expressions.push(expr);
 		return expr;
 	}
 	
+	/**
+	 * Creates a new compound expression for 'or'
+	 * @returns {ClauseExpression}
+	 */
 	or() {
 		const expr = new ClauseExpression('or', this, this.level + 1);
 		this.expressions.push(expr);
 		return expr;
 	}
 	
+	/**
+	 * Call this function to return back up a level.
+	 * @returns {ClauseExpression} the parent instance.
+	 */
 	end() {
 		return this.parent;
 	}
-
 	
+	/**
+	 * Turn the clause expression into a string that will be a valid query string
+	 * for the XIN Mods API.
+	 *
+	 * @returns {string} the string that expresses the clause expression
+	 */
 	toQuery() {
 		if (this.expressions.length === 0) {
 			return '';
@@ -153,9 +292,14 @@ class ClauseExpression {
 	
 }
 
+
+/**
+ * The query class
+ */
 class Query {
 
 	hippo;
+	
 	data = {
 		scopes: {
 			include: [],
@@ -170,27 +314,54 @@ class Query {
 	constructor(hippo) {
 		this.hippo = hippo;
 	}
-
+	
+	/**
+	 * The type of node we're looking for.
+	 *
+	 * @param typeName
+	 * @returns {Query}
+	 */
 	type(typeName) {
 		this.data.typeName = typeName;
 		return this;
 	}
-
+	
+	/**
+	 * If called, we also want to get the subtypes of previously defined typename
+	 * @returns {Query}
+	 */
 	withSubtypes() {
 		this.data.withSubtypes = true;
 		return this;
 	}
-
+	
+	/**
+	 * The offset to start returning results for
+	 *
+	 * @param offset {number} the offset.
+	 * @returns {Query}
+	 */
 	offset(offset) {
 		this.data.offset = offset;
 		return this;
 	}
-
+	
+	/**
+	 * The maximum number results to get.
+	 *
+	 * @param limit {number} the limit
+	 * @returns {Query}
+	 */
 	limit(limit) {
 		this.data.limit = limit;
 		return this;
 	}
-
+	
+	/**
+	 * The path scope to include.
+	 * @param path the path to include
+	 * @returns {Query}
+	 */
 	includePath(path) {
 		this.data.scopes.include.push(path);
 		return this;
@@ -239,15 +410,16 @@ class Query {
 
 			qStr += `\t)\n`;
 		}
-
-		if (this.data.orderBy) {
-			qStr += `\t(sortby [${this.data.orderBy}] ${this.data.direction})\n`;
-		}
-
+		
 		if (this.data.whereClause) {
 			qStr += this.data.whereClause.toQuery();
 		}
 		
+		if (this.data.orderBy) {
+			qStr += `\t(sortby [${this.data.orderBy}] ${this.data.direction})\n`;
+		}
+
+
 		qStr += ")";
 		
 		return qStr;
