@@ -17,12 +17,15 @@
 const AxiosModule = require('axios');
 const qs = require('qs');
 
+const Image = require('./Image.js');
 const QueryBuilder = require('./QueryBuilder.js');
 
 const DefaultOptions = {
 
 	hippoApi: '/site/api',
 	xinApi: '/site/custom-api',
+	assetPath: '/site/binaries',
+	assetModPath: '/site/assetmod',
 
 };
 
@@ -135,9 +138,8 @@ class HippoConnection {
 				
 				for (const resultRow of response.data.uuids) {
 					const {uuid} = resultRow;
-					const doc = await this.getDocumentByUuid(uuid);
-					
-					response.data.documents[uuid] = opts.namespace ? doc : this.sanitiseDocument(doc);
+					const doc = await this.getDocumentByUuid(uuid, opts);
+					response.data.documents[uuid] = doc;
 				}
 			}
 			
@@ -232,23 +234,63 @@ class HippoConnection {
 			}
 		}
 	}
-
-
+	
+	/**
+	 * Retrieve the image object for an image link object
+	 * @param link  the link object
+	 * @returns {Promise<null|Image>}
+	 */
+	async getImageFromLink(link) {
+		if (!link || !link.link || !link.link.id) {
+			return null;
+		}
+		
+		const imageUuid = link.link.id
+		return this.getImageFromUuid(imageUuid);
+	}
+	
+	/**
+	 * Retrieve an image by its UUID
+	 *
+	 * @param imageUuid
+	 * @returns {Promise<Image|null>}
+	 */
+	async getImageFromUuid(imageUuid) {
+		try {
+			const pathInfo = await this.uuidToPath(imageUuid);
+			if (pathInfo === null) {
+				return null;
+			}
+			return new Image(this, pathInfo);
+		}
+		catch (ex) {
+			console.error("Something happened while grabbing the image uuid, caused by:", ex);
+			return null;
+		}
+	}
+	
 	/**
 	 * Retrieve a document from Hippo by its UUID
 	 * @param uuid	{string} the uuid to retrieve
 	 * @returns {object?}
 	 */
-	async getDocumentByUuid(uuid) {
+	async getDocumentByUuid(uuid, options = {}) {
 
+		const defaults = {
+			namespace: false
+		};
+		
+		const opts = Object.assign({}, defaults, options);
+		
 		try {
 			const response = await this.axios.get(`${this.options.hippoApi}/documents/${uuid}`);
 
 			if (!response || !response.data) {
 				return null;
 			}
-
-			return response.data;
+			
+			const doc = response.data;
+			return (opts.namespace ? doc : this.sanitiseDocument(doc));
 		}
 		catch (ex) {
 			if (!ex.response) {

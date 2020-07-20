@@ -12,22 +12,24 @@ async function runTests() {
 			.limit(10)
 		.build()
 	;
-	
+
 	console.log("QUERY:\n", q);
-	
+
 	const qResult =
 		await hippo.executeQuery(q, {
 			namespace: true,
 			documents: true
 		});
-	
+
 	console.log("RESULT: ", qResult);
-	
-	return;
 
 	const doc = await hippo.getDocumentByUuid("c0c9833c-144a-40a1-a5ba-2fd49aeebe98");
-	console.log("Retrieved a document:", doc);
+	console.log("Retrieved a document:", JSON.stringify(doc, null, 4));
 
+	const image = await hippo.getImageFromLink(doc.items.heroImage);
+	console.log("Binary path: ", image.toUrl());
+	console.log("Asset mod path: ", image.scaleWidth(320).crop(320, 240).toUrl());
+	
 	const list = await hippo.listDocuments("/content/documents/site/articles");
 	console.log("Retrieved a folder:", list);
 

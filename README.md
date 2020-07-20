@@ -18,6 +18,8 @@ or member of the `restuser` group:
     const options = {
         hippoApi: '/site/api',
         xinApi: '/site/custom-api',
+        assetPath: '/site/binaries',
+        assetModPath: '/site/assetmod',
     };
     
     const hippo = xinmods.connectTo('http://localhost:8080', 'admin', 'admin', options);
@@ -128,6 +130,36 @@ Operators that are available:
 * `.lt` (lower than)
 * `.lte` (lower than or equal to)
 * `.and()`, `.or()` compound operators
+
+### Asset Mods
+
+Hippo CMS comes ships with a Digital Asset Manager (DAM) that is great for serving out files.
+A very common use case is for these assets to be adjusted in certain ways, like resizing, cropping
+etc. XIN Mods adds this functionality out-of-the-box, called "Asset Mods". 
+
+We can tap into this by using the `Image` object.
+
+The `HippoConnection` class exposes two useful methods. One interacts with Image Link field types, the
+other works directly off of the binary's UUID in the JCR -- the first uses the latter to work correctly.
+
+To retrieve a file from an image link, and add modifications to the object use it like this: 
+    
+    const doc = await hippo.getDocumentByUuid("c0c9833c-144a-40a1-a5ba-2fd49aeebe98");
+    const image = await hippo.getImageFromLink(doc.items.heroImage);
+    console.log("Binary path: ", image.toUrl());
+    console.log("Asset mod path: ", image.scaleWidth(320).crop(320, 240).toUrl());
+ 
+
+Available operations are:
+
+* `image.toUrl()`; converts it into a URL based on the connection properties
+* `image.reset()`; removes any operations that were applied to the object previously
+* `image.scaleWidth(newWidth)`; scales the image by its width
+* `image.scaleHeight(newHeight)`; scales the image by its height
+* `image.scale(newWidth, newHeight)`; scales into both dimensions
+* `image.greyscale()`; adds a greyscale filter to the image
+* `image.brighter(nTimes)`; brightens the image a certain amount, this can be applied multiple times at once
+* `image.darker(nTimes)`; darkens the image a certain amount, this can be applied multiples times at once.
 
 ## XIN Mods
   
