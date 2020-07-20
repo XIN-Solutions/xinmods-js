@@ -1,7 +1,7 @@
 # XIN Mods JS
 
-A package that interfaces with REST endpoints found in Bloomreach Hippo CMS with XIN Mods
-installed on top. 
+A package that interfaces with REST endpoints found in Bloomreach Hippo CMS with 
+[XIN Mods](https://xinsolutions.co.nz/bloomreach-hippo-cms-caas) installed on top. 
 
 ## How to use
 
@@ -12,7 +12,15 @@ input the correct URL at which the tomcat context lives, and a user that is eith
 or member of the `restuser` group:
 
     const xinmods = require('xinmods');
-    const hippo = xinmods.connectTo('http://localhost:8080', 'admin', 'admin');
+    
+    // you don't have to specify these as they are the default values.
+    // when you deploy to a proper instance you probably want to change these values.
+    const options = {
+        hippoApi: '/site/api',
+        xinApi: '/site/custom-api',
+    };
+    
+    const hippo = xinmods.connectTo('http://localhost:8080', 'admin', 'admin', options);
         
 The `HippoConnection` object has a number of useful functions:
 
@@ -21,8 +29,8 @@ The `HippoConnection` object has a number of useful functions:
 * `uuidToPath(uuid)`; convert a UUID to a JCR path
 * `pathToUuid(path)`; convert a path to a UUID
 * `getDocumentByPath(path)`; does two things, convert from path to uuid, and then get the document
-* `sanitiseDocument(doc)`; removes the namespace notations from all keys in the object
 * `getDocuments(options)`; a rudimentary way to query for nodes in the JCR.
+* `sanitiseDocument(doc)`; removes the namespace notations from all keys in the object
 
 Find their usages below:
     
@@ -72,28 +80,28 @@ More complicated queries can be done by communicating with the XIN Mods-specific
 There is a `QueryBuilder` that can build the query string using a fluid notation. 
 
 A complicated query looks like this:
-
-	const queryString =
-		hippo.newQuery()
-			.type('test:article').withSubtypes()
-			.includePath("/content/documents/site/articles")
-			.includePath('/content/anotherpath')
-			.excludePath('/content/exclude/this/path')
-			.where()
-			    // .or() also works
-			    .and()
-			        .eq("test:myfield", "a value")
-			        .and()
-			            .gte("test:price", 10)
-			            .lte("test:price", 100)
+    
+    const queryString =
+        hippo.newQuery()
+            .type('test:article').withSubtypes()
+            .includePath("/content/documents/site/articles")
+            .includePath('/content/anotherpath')
+            .excludePath('/content/exclude/this/path')
+            .where()
+                // .or() also works
+                .and()
+                    .equals("test:myfield", "a value")
+                    .and()
+                        .gte("test:price", 10)
+                        .lte("test:price", 100)
                     .end() 
-			    .end()
-			.end()
-			.orderBy('test:title', 'asc|desc')
-			.offset(0)
-			.limit(10)
-		.build()
-	;
+                .end()
+            .end()
+            .orderBy('test:title', 'asc|desc')
+            .offset(0)
+            .limit(10)
+        .build()
+    ;
 	
 	console.log("QUERY:\n", queryString);
 	
@@ -109,6 +117,17 @@ A complicated query looks like this:
 	
 	console.log("RESULT: ", qResult);
 	
+Operators that are available:
+
+* `.equals`, `.equalsIgnoreCase`
+* `.notEquals`, `.notEqualsIgnoreCase`
+* `.contains`, `.notContains`
+* `.isNull`, `.isNotNull`
+* `.gt` (greater than)
+* `.gte` (greater than or equal to)
+* `.lt` (lower than)
+* `.lte` (lower than or equal to)
+* `.and()`, `.or()` compound operators
 
 ## XIN Mods
   
