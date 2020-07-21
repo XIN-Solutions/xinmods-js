@@ -214,7 +214,7 @@ class HippoConnection {
 					_max: options.max,
 					_orderBy: options.orderBy,
 					_sortOrder: options.sortOrder,
-					_nodeType: options.nodeType,
+					_nodetype: options.nodeType,
 					_query: options.query
 				}
 			});
