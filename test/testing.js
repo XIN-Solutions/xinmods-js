@@ -3,10 +3,15 @@ const mod = require('../index.js');
 const hippo = mod.connectTo('http://localhost:8080', 'admin', 'admin');
 
 async function runTests() {
+	
+	const docs = await hippo.getDocuments({
+		max: 10
+	});
+	console.log("All Docs: ", JSON.stringify(docs, null, 4));
 
 	const q =
 		hippo.newQuery()
-			.type('test:article')
+			.type('xinmods:article')
 			.includePath("/content/documents/site/articles")
 			.offset(0)
 			.limit(10)
@@ -23,17 +28,18 @@ async function runTests() {
 
 	console.log("RESULT: ", qResult);
 
-	const doc = await hippo.getDocumentByUuid("c0c9833c-144a-40a1-a5ba-2fd49aeebe98");
+	const firstUuid = docs.items[0].id;
+	const doc = await hippo.getDocumentByUuid(firstUuid);
 	console.log("Retrieved a document:", JSON.stringify(doc, null, 4));
 
-	const image = await hippo.getImageFromLink(doc.items.heroImage);
+	const image = await hippo.getImageFromLink(doc.items.image);
 	console.log("Binary path: ", image.toUrl());
 	console.log("Asset mod path: ", image.scaleWidth(320).crop(320, 240).toUrl());
 	
 	const list = await hippo.listDocuments("/content/documents/site/articles");
 	console.log("Retrieved a folder:", list);
 
-	const {path} = await hippo.uuidToPath("c0c9833c-144a-40a1-a5ba-2fd49aeebe98");
+	const {path} = await hippo.uuidToPath(firstUuid);
 	console.log("Path for uuid: ", path);
 
 	const {uuid} = await hippo.pathToUuid(path);
@@ -41,12 +47,6 @@ async function runTests() {
 
 	const docByPath = await hippo.getDocumentByPath(path);
 	console.log("Doc:", docByPath);
-
-	const docs = await hippo.getDocuments({
-		max: 10,
-		query: "mark"
-	});
-	console.log("All Docs: ", JSON.stringify(docs, null, 4));
 
 }
 

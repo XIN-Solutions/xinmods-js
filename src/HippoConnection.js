@@ -42,6 +42,13 @@ const DefaultOptions = {
  * @property {stirng} path - full JCR path for this document
  * @property {string} url - the local URL document details
  * @property {string} type - the type of this result
+ *
+ * @typedef DocumentLocation
+ * @property {boolean} success - true if something useful was returned
+ * @property {string} message - the message that came back
+ * @property {string} path - the path we've retrieved
+ * @property {string} type - the type of the node that lives there
+ * @property {string} uuid - the uuid of the node
  */
 
 
@@ -53,7 +60,6 @@ class HippoConnection {
 	password;
 	options;
 	axios;
-	pathCache;
 
 	/**
 	 * Initialise the hippo connection.
@@ -68,8 +74,7 @@ class HippoConnection {
 		this.host = host;
 		this.user = user;
 		this.password = password;
-		this.pathCache = {};
-
+		
 		this.axios = AxiosModule.create({
 			timeout: 1000,
 			baseURL: this.host,
@@ -261,6 +266,7 @@ class HippoConnection {
 			if (pathInfo === null) {
 				return null;
 			}
+			
 			return new Image(this, pathInfo);
 		}
 		catch (ex) {
@@ -352,11 +358,11 @@ class HippoConnection {
 	/**
 	 * Convert a UUID to a path.
 	 *
-	 * @param uuid	{string} the uuid to convert
-	 * @returns {string} the path it represents.
+	 * @param uuid	{string} the uuid to convert to a path
+	 * @returns {Promise<DocumentLocation>} the path it represents.
 	 */
 	async uuidToPath(uuid) {
-
+		
 		try {
 			const response = await this.axios.get(`${this.options.xinApi}/content/uuid-to-path`, {
 				params: {
@@ -367,7 +373,7 @@ class HippoConnection {
 			if (!response || !response.data) {
 				return null;
 			}
-
+			
 			return response.data;
 		}
 		catch (ex) {
@@ -382,9 +388,10 @@ class HippoConnection {
 	 * Convert a path to a UUID
 	 *
 	 * @param path {string} is the path to convert
-	 * @returns {string} is the uuid it represents.
+	 * @returns {Promise<DocumentLocation>} is the uuid it represents.
 	 */
 	async pathToUuid(path) {
+		
 		try {
 			const response = await this.axios.get(`${this.options.xinApi}/content/path-to-uuid`, {
 				params: {
