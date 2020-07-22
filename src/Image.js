@@ -43,14 +43,14 @@ class Image {
 	}
 	
 	brighter(times = 1) {
-		for (const idx = 0; idx < times; ++idx) {
+		for (let idx = 0; idx < times; ++idx) {
 			this.operations.push('filter=brighter');
 		}
 		return this;
 	}
 
 	darker(times = 1) {
-		for (const idx = 0; idx < times; ++idx) {
+		for (let idx = 0; idx < times; ++idx) {
 			this.operations.push('filter=darker');
 		}
 		return this;
@@ -61,13 +61,8 @@ class Image {
 		return this;
 	}
 
-	scaleHeight(width) {
+	scaleHeight(height) {
 		this.operations.push(`scale=_,${height}`);
-		return this;
-	}
-
-	scale(width, height) {
-		this.operations.push(`scale=${width},${height}`);
 		return this;
 	}
 	
