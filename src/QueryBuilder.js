@@ -25,11 +25,13 @@ class QueryBuilder {
 	/**
 	 * Returns a new WHERE clause, you might want to use this when you're building
 	 * a clause dynamically. You can then set it in `.where()` of the query builder.
+	 * If clausetype is specified you could build partial query elements to add in .and() and .or() as parameters.
 	 *
+	 * @param clauseType {string} the type of clause we're writing
 	 * @returns {ClauseExpression} a new WHERE expression clause
 	 */
-	newClause() {
-		return new ClauseExpression('where')
+	newClause(clauseType) {
+		return new ClauseExpression(clauseType || 'where')
 	}
 	
 	
@@ -229,20 +231,41 @@ class ClauseExpression {
 	 * Creates a new compound expression for 'and'
 	 * @returns {ClauseExpression}
 	 */
-	and() {
+	and(...elements) {
 		const expr = new ClauseExpression('and', this, this.level + 1);
-		this.expressions.push(expr);
-		return expr;
+		
+		// specified clauses already? just push those and return `this` (shortcutting the fluid api)
+		if (elements) {
+			this.expressions.push(expr);
+			for (const el of elements) {
+				expr.expressions.push(el);
+			}
+			return this;
+		}
+		else {
+			this.expressions.push(expr);
+			return expr;
+		}
 	}
 	
 	/**
 	 * Creates a new compound expression for 'or'
 	 * @returns {ClauseExpression}
 	 */
-	or() {
+	or(...elements) {
 		const expr = new ClauseExpression('or', this, this.level + 1);
-		this.expressions.push(expr);
-		return expr;
+		// specified clauses already? just push those and return `this` (shortcutting the fluid api)
+		if (elements) {
+			this.expressions.push(expr);
+			for (const el of elements) {
+				expr.expressions.push(el);
+			}
+			return this;
+		}
+		else {
+			this.expressions.push(expr);
+			return expr;
+		}
 	}
 	
 	/**

@@ -1,18 +1,43 @@
 const mod = require('../index.js');
 
+/**
+ * @type {HippoConnection}
+ */
 const hippo = mod.connectTo('http://localhost:8080', 'admin', 'admin');
 
 async function runTests() {
 	
+	const compoundQ = hippo.newQuery();
+	const familiarName =
+		hippo.newClause('or')
+			.equals("xinmods:name", "John Doe")
+			.equals("xinmods:name", "Jane Doe")
+	;
+	
+	const ageRange =
+		hippo.newClause('and')
+			.gte('xinmods:age', 20)
+			.lte('xinmods:age', 50)
+	;
+	
+	const queryStr = compounQ.where().and(familiarName, ageRange).end().build();
+	console.log(queryStr);
+	
 	const docs = await hippo.getDocuments({
-		max: 10
+		max: 10,
+		nodeType: "xinmods:article"
 	});
 	console.log("All Docs: ", JSON.stringify(docs, null, 4));
+	
+	
+	const firstUuid = docs.items[0].id;
+	const doc = await hippo.getDocumentByUuid(firstUuid);
+	console.log("Retrieved a document:", JSON.stringify(doc, null, 4));
 
 	const q =
 		hippo.newQuery()
 			.type('xinmods:article')
-			.includePath("/content/documents/site/articles")
+			.includePath("/content")
 			.offset(0)
 			.limit(10)
 		.build()
@@ -27,10 +52,6 @@ async function runTests() {
 		});
 
 	console.log("RESULT: ", qResult);
-
-	const firstUuid = docs.items[0].id;
-	const doc = await hippo.getDocumentByUuid(firstUuid);
-	console.log("Retrieved a document:", JSON.stringify(doc, null, 4));
 
 	const image = await hippo.getImageFromLink(doc.items.image);
 	console.log("Binary path: ", image.toUrl());
@@ -47,7 +68,6 @@ async function runTests() {
 
 	const docByPath = await hippo.getDocumentByPath(path);
 	console.log("Doc:", docByPath);
-
 }
 
 runTests().then(() => console.log("Done"));

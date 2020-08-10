@@ -102,10 +102,27 @@ class HippoConnection {
 	
 	/**
 	 * Creates starting point for where clause expression.
+	 * @param clauseType {string} the type of clause we're creating.
 	 * @returns {ClauseExpression}
 	 */
-	newClause() {
-		return new QueryBuilder(this).newClause();
+	newClause(clauseType) {
+		return new QueryBuilder(this).newClause(clauseType);
+	}
+	
+	/**
+	 * Convenience methods for creating 'and' clause expression
+	 * @returns {ClauseExpression}
+	 */
+	andClause() {
+		return this.newClause('and');
+	}
+	
+	/**
+	 * Convenience methods for creating 'or' clause expression
+	 * @returns {ClauseExpression}
+	 */
+	orClause() {
+		return this.newClause('or');
 	}
 	
 	
