@@ -235,18 +235,17 @@ class ClauseExpression {
 		const expr = new ClauseExpression('and', this, this.level + 1);
 		
 		// specified clauses already? just push those and return `this` (shortcutting the fluid api)
-		if (elements) {
+		if (elements.length > 0) {
 			this.expressions.push(expr);
 			for (const el of elements) {
 				el.parent = expr;
 				expr.expressions.push(el);
 			}
-			return this;
 		}
 		else {
 			this.expressions.push(expr);
-			return expr;
 		}
+		return expr;
 	}
 	
 	/**
@@ -257,18 +256,17 @@ class ClauseExpression {
 		const expr = new ClauseExpression('or', this, this.level + 1);
 		
 		// specified clauses already? just push those and return `this` (shortcutting the fluid api)
-		if (elements) {
+		if (elements.length > 0) {
 			this.expressions.push(expr);
 			for (const el of elements) {
 				el.parent = expr;
 				expr.expressions.push(el);
 			}
-			return this;
 		}
 		else {
 			this.expressions.push(expr);
-			return expr;
 		}
+		return expr;
 	}
 	
 	/**
