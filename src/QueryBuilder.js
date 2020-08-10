@@ -238,6 +238,7 @@ class ClauseExpression {
 		if (elements) {
 			this.expressions.push(expr);
 			for (const el of elements) {
+				el.parent = expr;
 				expr.expressions.push(el);
 			}
 			return this;
@@ -254,10 +255,12 @@ class ClauseExpression {
 	 */
 	or(...elements) {
 		const expr = new ClauseExpression('or', this, this.level + 1);
+		
 		// specified clauses already? just push those and return `this` (shortcutting the fluid api)
 		if (elements) {
 			this.expressions.push(expr);
 			for (const el of elements) {
+				el.parent = expr;
 				expr.expressions.push(el);
 			}
 			return this;
