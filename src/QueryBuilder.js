@@ -1,3 +1,7 @@
+/**
+ * @callback IfExpression
+ * @param {ClauseExpression} clause
+ */
 
 /**
  * A query builder class with some functions that hand off to other classes
@@ -5,7 +9,7 @@
 class QueryBuilder {
 
 	hippo;
-	
+
 	/**
 	 * Initialise the query builder
 	 *
@@ -14,14 +18,14 @@ class QueryBuilder {
 	constructor(hippo) {
 		this.hippo = hippo;
 	}
-	
+
 	/**
  	 * @returns {Query} a new query instance
 	 */
 	newQuery() {
 		return new Query(this.hippo);
 	}
-	
+
 	/**
 	 * Returns a new WHERE clause, you might want to use this when you're building
 	 * a clause dynamically. You can then set it in `.where()` of the query builder.
@@ -33,8 +37,8 @@ class QueryBuilder {
 	newClause(clauseType) {
 		return new ClauseExpression(clauseType || 'where')
 	}
-	
-	
+
+
 }
 
 /**
@@ -54,19 +58,40 @@ function operator(op, field, value) {
  * can be the first level, or a deeper down compound expression (like OR and AND).
  */
 class ClauseExpression {
-	
+
 	parent;
 	prefix;
 	expressions;
 	level;
-	
+
 	constructor(prefix, stack, level = 1) {
 		this.prefix = prefix;
 		this.parent = stack;
 		this.expressions = [];
 		this.level = level;
 	}
-	
+
+	nop() {
+	    return this;
+    }
+
+    /**
+     * Add a part of the query given a certain condition being true.
+     *
+     * @param expr {boolean}  the expression that should be true
+     * @param thenCond {IfExpression} the condition to run if expr is true
+     * @param elseCond {IfExpression?} the condition to run if expr is false
+     * @returns {ClauseExpression}
+     */
+    if(expr, thenCond, elseCond) {
+        if (expr) {
+            thenCond(this);
+        } else if (elseCond) {
+            elseCond(this);
+        }
+        return this;
+    }
+
 	/**
 	 * Field equals a certain value
 	 *
@@ -79,7 +104,7 @@ class ClauseExpression {
 		this.expressions.push(operator('eq', field, value));
 		return this;
 	}
-	
+
 	/**
 	 * Field equals a certain value and we don't care about the case
 	 *
@@ -92,7 +117,7 @@ class ClauseExpression {
 		this.expressions.push(operator('ieq', field, value));
 		return this;
 	}
-	
+
 	/**
 	 * Field does not equal a certain value
 	 *
@@ -105,7 +130,7 @@ class ClauseExpression {
 		this.expressions.push(operator('neq', field, value));
 		return this;
 	}
-	
+
 	/**
 	 * Field does not equal a certain value  and we don't care about the case
 	 *
@@ -118,7 +143,7 @@ class ClauseExpression {
 		this.expressions.push(operator('ineq', field, value));
 		return this;
 	}
-	
+
 	/**
 	 * Field contains a certain value
 	 *
@@ -131,7 +156,7 @@ class ClauseExpression {
 		this.expressions.push(operator('contains', field, value));
 		return this;
 	}
-	
+
 	/**
 	 * Field does not contain a certain value
 	 *
@@ -144,7 +169,7 @@ class ClauseExpression {
 		this.expressions.push(operator('!contains', field, value));
 		return this;
 	}
-	
+
 	/**
 	 * Field is null
 	 *
@@ -157,7 +182,7 @@ class ClauseExpression {
 		this.expressions.push(operator('null', field, value));
 		return this;
 	}
-	
+
 	/**
 	 * Field is not null
 	 *
@@ -170,8 +195,8 @@ class ClauseExpression {
 		this.expressions.push(operator('notnull', field));
 		return this;
 	}
-	
-	
+
+
 	/**
 	 * Field greater than
 	 *
@@ -184,7 +209,7 @@ class ClauseExpression {
 		this.expressions.push(operator('gt', field, value));
 		return this;
 	}
-	
+
 	/**
 	 * Field greater than or equal to
 	 *
@@ -197,8 +222,8 @@ class ClauseExpression {
 		this.expressions.push(operator('gte', field, value));
 		return this;
 	}
-	
-	
+
+
 	/**
 	 * Field lower than a certain value
 	 *
@@ -211,8 +236,8 @@ class ClauseExpression {
 		this.expressions.push(operator('lt', field, value));
 		return this;
 	}
-	
-	
+
+
 	/**
 	 * Field lower than or equal to a certain value
 	 *
@@ -225,20 +250,24 @@ class ClauseExpression {
 		this.expressions.push(operator('lte', field, value));
 		return this;
 	}
-	
-	
+
+
 	/**
 	 * Creates a new compound expression for 'and'
 	 * @returns {ClauseExpression}
 	 */
 	and(...elements) {
 		const expr = new ClauseExpression('and', this, this.level + 1);
-		
+
 		// specified clauses already? just push those and return `this` (shortcutting the fluid api)
 		if (elements.length > 0) {
 			this.expressions.push(expr);
 			for (const el of elements) {
-				el.parent = expr;
+                if (!el) {
+                    continue;
+                }
+
+                el.parent = expr;
 				expr.expressions.push(el);
 			}
 		}
@@ -247,18 +276,21 @@ class ClauseExpression {
 		}
 		return expr;
 	}
-	
+
 	/**
 	 * Creates a new compound expression for 'or'
 	 * @returns {ClauseExpression}
 	 */
 	or(...elements) {
 		const expr = new ClauseExpression('or', this, this.level + 1);
-		
+
 		// specified clauses already? just push those and return `this` (shortcutting the fluid api)
 		if (elements.length > 0) {
 			this.expressions.push(expr);
 			for (const el of elements) {
+			    if (!el) {
+			        continue;
+                }
 				el.parent = expr;
 				expr.expressions.push(el);
 			}
@@ -268,7 +300,7 @@ class ClauseExpression {
 		}
 		return expr;
 	}
-	
+
 	/**
 	 * Call this function to return back up a level.
 	 * @returns {ClauseExpression} the parent instance.
@@ -276,7 +308,7 @@ class ClauseExpression {
 	end() {
 		return this.parent;
 	}
-	
+
 	/**
 	 * Turn the clause expression into a string that will be a valid query string
 	 * for the XIN Mods API.
@@ -287,7 +319,7 @@ class ClauseExpression {
 		if (this.expressions.length === 0) {
 			return '';
 		}
-		
+
 		const indent = "\t".repeat(this.level);
 		let qPart = `${indent}(${this.prefix} \n`;
 
@@ -300,7 +332,7 @@ class ClauseExpression {
 			}
 			return ` ${val}`;
 		}
-		
+
 		for (const expr of this.expressions) {
 			if (expr instanceof ClauseExpression) {
 				qPart += expr.toQuery();
@@ -309,11 +341,11 @@ class ClauseExpression {
 				qPart += `${indent}\t(${expr.op} [${expr.field}]${toValue(expr.value)})\n`;
 			}
 		}
-		
+
 		qPart += `${indent})\n`;
 		return qPart;
 	}
-	
+
 }
 
 
@@ -323,7 +355,7 @@ class ClauseExpression {
 class Query {
 
 	hippo;
-	
+
 	data = {
 		scopes: {
 			include: [],
@@ -338,7 +370,7 @@ class Query {
 	constructor(hippo) {
 		this.hippo = hippo;
 	}
-	
+
 	/**
 	 * The type of node we're looking for.
 	 *
@@ -349,7 +381,7 @@ class Query {
 		this.data.typeName = typeName;
 		return this;
 	}
-	
+
 	/**
 	 * If called, we also want to get the subtypes of previously defined typename
 	 * @returns {Query}
@@ -358,7 +390,7 @@ class Query {
 		this.data.withSubtypes = true;
 		return this;
 	}
-	
+
 	/**
 	 * The offset to start returning results for
 	 *
@@ -369,7 +401,7 @@ class Query {
 		this.data.offset = offset;
 		return this;
 	}
-	
+
 	/**
 	 * The maximum number results to get.
 	 *
@@ -380,7 +412,7 @@ class Query {
 		this.data.limit = limit;
 		return this;
 	}
-	
+
 	/**
 	 * The path scope to include.
 	 * @param path the path to include
@@ -400,7 +432,7 @@ class Query {
 		if (clause === null) {
 			return (this.data.whereClause = new ClauseExpression('where', this));
 		}
-		
+
 		this.data.whereClause = clause;
 		return this;
 	}
@@ -434,18 +466,18 @@ class Query {
 
 			qStr += `\t)\n`;
 		}
-		
+
 		if (this.data.whereClause) {
 			qStr += this.data.whereClause.toQuery();
 		}
-		
+
 		if (this.data.orderBy) {
 			qStr += `\t(sortby [${this.data.orderBy}] ${this.data.direction})\n`;
 		}
 
 
 		qStr += ")";
-		
+
 		return qStr;
 	}
 
