@@ -258,6 +258,36 @@ class HippoConnection {
 	}
 	
 	/**
+	 * @returns {boolean} true if the date was set.
+	 */
+	hasDate(value) {
+		return value.indexOf("0001") !== 0
+	}
+	
+	/**
+	 * Determine whether a link was set.
+	 * @param link the link object
+	 * @returns {boolean} true if the link was set
+	 */
+	isLinkSpecified(link) {
+		return link && link.link && link.link.type === 'local';
+	}
+	
+	/**
+	 * Retrieve an asset url from a linked asset.
+	 *
+	 * @param link	the link object
+	 * @returns {Promise<null|*>}
+	 */
+	async getAssetUrlFromLink(link) {
+		if (!link || !link.link || link.link.type !== "local" || !link.link.id) {
+			return null;
+		}
+		const asset = await this.getDocumentByUuid(link.link.id);
+		return asset? asset.items.asset.link.url : null;
+	}
+	
+	/**
 	 * Retrieve the image object for an image link object
 	 * @param link  the link object
 	 * @returns {Promise<null|Image>}
@@ -313,6 +343,7 @@ class HippoConnection {
 			}
 			
 			const doc = response.data;
+			doc.hippo = this;
 			return (opts.namespace ? doc : this.sanitiseDocument(doc));
 		}
 		catch (ex) {
