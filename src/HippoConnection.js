@@ -74,7 +74,7 @@ class HippoConnection {
 		this.host = host;
 		this.user = user;
 		this.password = password;
-		
+
 		this.axios = AxiosModule.create({
 			timeout: 1000,
 			baseURL: this.host,
@@ -99,7 +99,7 @@ class HippoConnection {
 	newQuery() {
 		return new QueryBuilder(this).newQuery();
 	}
-	
+
 	/**
 	 * Creates starting point for where clause expression.
 	 * @param clauseType {string} the type of clause we're creating.
@@ -108,7 +108,7 @@ class HippoConnection {
 	newClause(clauseType) {
 		return new QueryBuilder(this).newClause(clauseType);
 	}
-	
+
 	/**
 	 * Convenience methods for creating 'and' clause expression
 	 * @returns {ClauseExpression}
@@ -116,7 +116,7 @@ class HippoConnection {
 	andClause() {
 		return this.newClause('and');
 	}
-	
+
 	/**
 	 * Convenience methods for creating 'or' clause expression
 	 * @returns {ClauseExpression}
@@ -124,8 +124,8 @@ class HippoConnection {
 	orClause() {
 		return this.newClause('or');
 	}
-	
-	
+
+
 	/**
 	 * Execute the query in `query`. Depending on the options that are provided we might have
 	 * to do additional things.
@@ -137,46 +137,46 @@ class HippoConnection {
 	 * @returns {Promise<QueryResult>}
 	 */
 	async executeQuery(query, options = {}) {
-		
+
 		const defaultOptions = {
 			namespace: true,
 			documents: true
 		};
-		
+
 		const opts = Object.assign({}, defaultOptions, options);
-		
+
 		try {
-			
+
 			const response = await this.axios.get(`${this.options.xinApi}/content/query?query=${encodeURIComponent(query)}`);
-			
+
 			if (!response || !response.data) {
 				return null;
 			}
-			
+
 			// if set to true, let's go get the actual documents for this result.
 			if (opts.documents) {
-				
+
 				response.data.documents = {};
-				
+
 				for (const resultRow of response.data.uuids) {
 					const {uuid} = resultRow;
 					const doc = await this.getDocumentByUuid(uuid, opts);
 					response.data.documents[uuid] = doc;
 				}
 			}
-			
+
 			return response.data;
 		}
 		catch (ex) {
-			
+
 			if (!ex.response) {
 				console.error("Something happened: ", ex);
 			}
-			
+
 			if (ex.response.status === 401) {
 				throw new Error("Unauthorized request", ex);
 			}
-			
+
 			if (ex.response.status === 501) {
 				console.log("Something wrong with the query, check Hippo CMS server logs for a detailed report.");
 				throw new Error(ex.response.data.message);
@@ -185,8 +185,8 @@ class HippoConnection {
 			throw ex;
 		}
 	}
-	
-	
+
+
 	/**
 	 * Remove the namespace from objects
 	 *
@@ -194,25 +194,25 @@ class HippoConnection {
 	 */
 	sanitiseDocument(object) {
 		const newObj = {};
-		
+
 		for (const prop in object) {
-		
+
 			const val = object[prop];
 			const cleanKey = prop.indexOf(":") === -1 ? prop : prop.split(":")[1];
 			const type = typeof(val);
-			
+
 			if (type === 'object') {
 				newObj[cleanKey] = this.sanitiseDocument(val);
 			} else {
 				newObj[cleanKey] = val;
 			}
 		}
-		
+
 		return newObj;
 	}
-	
-	
-	
+
+
+
 	/**
 	 * Simple document query:
 	 * https://documentation.bloomreach.com/14/library/concepts/rest/content-rest-api/document-collection-resource.html
@@ -245,7 +245,9 @@ class HippoConnection {
 				return null;
 			}
 
-			return response.data;
+			const returnData = response.data;
+			returnData.hippo = this;
+			return returnData;
 		}
 		catch (ex) {
 			if (!ex.response) {
@@ -256,14 +258,14 @@ class HippoConnection {
 			}
 		}
 	}
-	
+
 	/**
 	 * @returns {boolean} true if the date was set.
 	 */
 	hasDate(value) {
 		return value.indexOf("0001") !== 0
 	}
-	
+
 	/**
 	 * Determine whether a link was set.
 	 * @param link the link object
@@ -272,7 +274,7 @@ class HippoConnection {
 	isLinkSpecified(link) {
 		return link && link.link && link.link.type === 'local';
 	}
-	
+
 	/**
 	 * Retrieve an asset url from a linked asset.
 	 *
@@ -286,7 +288,7 @@ class HippoConnection {
 		const asset = await this.getDocumentByUuid(link.link.id);
 		return asset? asset.items.asset.link.url : null;
 	}
-	
+
 	/**
 	 * Retrieve the image object for an image link object
 	 * @param link  the link object
@@ -296,11 +298,11 @@ class HippoConnection {
 		if (!link || !link.link || !link.link.id) {
 			return null;
 		}
-		
+
 		const imageUuid = link.link.id
 		return this.getImageFromUuid(imageUuid);
 	}
-	
+
 	/**
 	 * Retrieve an image by its UUID
 	 *
@@ -313,7 +315,7 @@ class HippoConnection {
 			if (pathInfo === null) {
 				return null;
 			}
-			
+
 			return new Image(this, pathInfo);
 		}
 		catch (ex) {
@@ -321,7 +323,7 @@ class HippoConnection {
 			return null;
 		}
 	}
-	
+
 	/**
 	 * Retrieve a document from Hippo by its UUID
 	 * @param uuid	{string} the uuid to retrieve
@@ -332,19 +334,20 @@ class HippoConnection {
 		const defaults = {
 			namespace: false
 		};
-		
+
 		const opts = Object.assign({}, defaults, options);
-		
+
 		try {
 			const response = await this.axios.get(`${this.options.hippoApi}/documents/${uuid}`);
 
 			if (!response || !response.data) {
 				return null;
 			}
-			
+
 			const doc = response.data;
-			doc.hippo = this;
-			return (opts.namespace ? doc : this.sanitiseDocument(doc));
+			const returnDoc = (opts.namespace ? doc : this.sanitiseDocument(doc));
+			returnDoc.hippo = this;
+			return returnDoc;
 		}
 		catch (ex) {
 			if (!ex.response) {
@@ -410,7 +413,7 @@ class HippoConnection {
 	 * @returns {Promise<DocumentLocation>} the path it represents.
 	 */
 	async uuidToPath(uuid) {
-		
+
 		try {
 			const response = await this.axios.get(`${this.options.xinApi}/content/uuid-to-path`, {
 				params: {
@@ -421,7 +424,7 @@ class HippoConnection {
 			if (!response || !response.data) {
 				return null;
 			}
-			
+
 			return response.data;
 		}
 		catch (ex) {
@@ -439,7 +442,7 @@ class HippoConnection {
 	 * @returns {Promise<DocumentLocation>} is the uuid it represents.
 	 */
 	async pathToUuid(path) {
-		
+
 		try {
 			const response = await this.axios.get(`${this.options.xinApi}/content/path-to-uuid`, {
 				params: {
