@@ -17,6 +17,7 @@
 const AxiosModule = require('axios');
 const qs = require('qs');
 
+const SimpleCache = require('./SimpleCache.js');
 const Image = require('./Image.js');
 const QueryBuilder = require('./QueryBuilder.js');
 
@@ -61,6 +62,10 @@ class HippoConnection {
 	options;
 	axios;
 
+	/** @type {SimpleCache} */
+	cache;
+
+
 	/**
 	 * Initialise the hippo connection.
 	 *
@@ -68,12 +73,14 @@ class HippoConnection {
 	 * @param user	{string} the user to connect with
 	 * @param password {string} the password to connect with
 	 * @param options {object} options that we might use.
+     * @param options.caching {boolean} cache the results if set to true
 	 */
 	constructor(host, user, password, options = {}) {
 
 		this.host = host;
 		this.user = user;
 		this.password = password;
+		this.cache = new SimpleCache("hippo-cache", options.caching || false);
 
 		this.axios = AxiosModule.create({
 			timeout: 1000,
@@ -138,52 +145,56 @@ class HippoConnection {
 	 */
 	async executeQuery(query, options = {}) {
 
-		const defaultOptions = {
-			namespace: true,
-			documents: true
-		};
+	    return this.cache.namedMethod('executeQuery', arguments, async () => {
+            const defaultOptions = {
+                namespace: true,
+                documents: true
+            };
 
-		const opts = Object.assign({}, defaultOptions, options);
+            const opts = Object.assign({}, defaultOptions, options);
 
-		try {
+            try {
 
-			const response = await this.axios.get(`${this.options.xinApi}/content/query?query=${encodeURIComponent(query)}`);
+                const response = await this.axios.get(`${this.options.xinApi}/content/query?query=${encodeURIComponent(query)}`);
 
-			if (!response || !response.data) {
-				return null;
-			}
+                if (!response || !response.data) {
+                    return null;
+                }
 
-			// if set to true, let's go get the actual documents for this result.
-			if (opts.documents) {
+                // if set to true, let's go get the actual documents for this result.
+                if (opts.documents) {
 
-				response.data.documents = {};
+                    response.data.documents = {};
 
-				for (const resultRow of response.data.uuids) {
-					const {uuid} = resultRow;
-					const doc = await this.getDocumentByUuid(uuid, opts);
-					response.data.documents[uuid] = doc;
-				}
-			}
+                    for (const resultRow of response.data.uuids) {
+                        const {uuid} = resultRow;
+                        const doc = await this.getDocumentByUuid(uuid, opts);
+                        response.data.documents[uuid] = doc;
+                    }
+                }
 
-			return response.data;
-		}
-		catch (ex) {
+                return response.data;
+            }
+            catch (ex) {
 
-			if (!ex.response) {
-				console.error("Something happened: ", ex);
-			}
+                if (!ex.response) {
+                    console.error("Something happened: ", ex);
+                }
 
-			if (ex.response.status === 401) {
-				throw new Error("Unauthorized request", ex);
-			}
+                if (ex.response.status === 401) {
+                    throw new Error("Unauthorized request", ex);
+                }
 
-			if (ex.response.status === 501) {
-				console.log("Something wrong with the query, check Hippo CMS server logs for a detailed report.");
-				throw new Error(ex.response.data.message);
-			}
+                if (ex.response.status === 501) {
+                    console.log("Something wrong with the query, check Hippo CMS server logs for a detailed report.");
+                    throw new Error(ex.response.data.message);
+                }
 
-			throw ex;
-		}
+                throw ex;
+            }
+        });
+
+
 	}
 
 
@@ -193,6 +204,7 @@ class HippoConnection {
 	 * @param object    the object to adapt
 	 */
 	sanitiseDocument(object) {
+
 		const newObj = {};
 
 		for (const prop in object) {
@@ -227,36 +239,39 @@ class HippoConnection {
 	 * @param options.attributes {string[]?} the attributes to retrieve
 	 */
 	async getDocuments(options = {}) {
+	    return this.cache.namedMethod('getDocuments', arguments, async () => {
 
-		try {
+            try {
 
-			const response = await this.axios.get(`${this.options.hippoApi}/documents`, {
-				params: {
-					_offset: options.offset,
-					_max: options.max,
-					_orderBy: options.orderBy,
-					_sortOrder: options.sortOrder,
-					_nodetype: options.nodeType,
-					_query: options.query
-				}
-			});
+                const response = await this.axios.get(`${this.options.hippoApi}/documents`, {
+                    params: {
+                        _offset: options.offset,
+                        _max: options.max,
+                        _orderBy: options.orderBy,
+                        _sortOrder: options.sortOrder,
+                        _nodetype: options.nodeType,
+                        _query: options.query
+                    }
+                });
 
-			if (!response || !response.data) {
-				return null;
-			}
+                if (!response || !response.data) {
+                    return null;
+                }
 
-			const returnData = response.data;
-			returnData.hippo = this;
-			return returnData;
-		}
-		catch (ex) {
-			if (!ex.response) {
-				console.error("Something happened: ", ex);
-			}
-			if (ex.response.status === 401) {
-				throw new Error("Unauthorized request", ex);
-			}
-		}
+                const returnData = response.data;
+                returnData.hippo = this;
+                return returnData;
+            }
+            catch (ex) {
+                if (!ex.response) {
+                    console.error("Something happened: ", ex);
+                }
+                if (ex.response.status === 401) {
+                    throw new Error("Unauthorized request", ex);
+                }
+            }
+        });
+
 	}
 
 	/**
@@ -282,7 +297,7 @@ class HippoConnection {
 	 * @returns {Promise<null|*>}
 	 */
 	async getAssetUrlFromLink(link) {
-		if (!link || !link.link || link.link.type !== "local" || !link.link.id) {
+        if (!link || !link.link || link.link.type !== "local" || !link.link.id) {
 			return null;
 		}
 		const asset = await this.getDocumentByUuid(link.link.id);
@@ -295,7 +310,7 @@ class HippoConnection {
 	 * @returns {Promise<null|Image>}
 	 */
 	async getImageFromLink(link) {
-		if (!link || !link.link || !link.link.id) {
+        if (!link || !link.link || !link.link.id) {
 			return null;
 		}
 
@@ -310,7 +325,7 @@ class HippoConnection {
 	 * @returns {Promise<Image|null>}
 	 */
 	async getImageFromUuid(imageUuid) {
-		try {
+        try {
 			const pathInfo = await this.uuidToPath(imageUuid);
 			if (pathInfo === null) {
 				return null;
@@ -330,33 +345,36 @@ class HippoConnection {
 	 * @returns {object?}
 	 */
 	async getDocumentByUuid(uuid, options = {}) {
+	    return this.cache.namedMethod('getDocumentByUuid', arguments, async () => {
 
-		const defaults = {
-			namespace: false
-		};
+            const defaults = {
+                namespace: false
+            };
 
-		const opts = Object.assign({}, defaults, options);
+            const opts = Object.assign({}, defaults, options);
 
-		try {
-			const response = await this.axios.get(`${this.options.hippoApi}/documents/${uuid}`);
+            try {
+                const response = await this.axios.get(`${this.options.hippoApi}/documents/${uuid}`);
 
-			if (!response || !response.data) {
-				return null;
-			}
+                if (!response || !response.data) {
+                    return null;
+                }
 
-			const doc = response.data;
-			const returnDoc = (opts.namespace ? doc : this.sanitiseDocument(doc));
-			returnDoc.hippo = this;
-			return returnDoc;
-		}
-		catch (ex) {
-			if (!ex.response) {
-				throw ex;
-			}
-			if (ex.response.status === 401) {
-				throw new Error("Unauthorized request", ex);
-			}
-		}
+                const doc = response.data;
+                const returnDoc = (opts.namespace ? doc : this.sanitiseDocument(doc));
+                returnDoc.hippo = this;
+                return returnDoc;
+            }
+            catch (ex) {
+                if (!ex.response) {
+                    throw ex;
+                }
+                if (ex.response.status === 401) {
+                    throw new Error("Unauthorized request", ex);
+                }
+            }
+        });
+
 
 	}
 
@@ -367,7 +385,7 @@ class HippoConnection {
 	 * @returns {null|*}
 	 */
 	async getDocumentByPath(path) {
-		const {uuid} = await this.pathToUuid(path);
+        const {uuid} = await this.pathToUuid(path);
 		if (!uuid) {
 			return null;
 		}
@@ -381,28 +399,31 @@ class HippoConnection {
 	 * @returns {*[]}
 	 */
 	async listDocuments(path) {
-		try {
-			const response = await this.axios.get(`${this.options.xinApi}/content/documents-list`, {
-				params: {
-					path
-				}
-			});
+	    return this.cache.namedMethod('listDocuments', arguments, async () => {
+            try {
+                const response = await this.axios.get(`${this.options.xinApi}/content/documents-list`, {
+                    params: {
+                        path
+                    }
+                });
 
-			if (!response || !response.data) {
-				return null;
-			}
+                if (!response || !response.data) {
+                    return null;
+                }
 
-			if (!response.data.success) {
-				return null;
-			}
+                if (!response.data.success) {
+                    return null;
+                }
 
-			return response.data;
-		}
-		catch (ex) {
-			if (ex.response.status === 401) {
-				throw new Error("Unauthorized request", ex);
-			}
-		}
+                return response.data;
+            }
+            catch (ex) {
+                if (ex.response.status === 401) {
+                    throw new Error("Unauthorized request", ex);
+                }
+            }
+        });
+
 	}
 
 
@@ -413,25 +434,27 @@ class HippoConnection {
 	 * @returns {Promise<DocumentLocation>} the path it represents.
 	 */
 	async uuidToPath(uuid) {
+        return this.cache.namedMethod('uuidToPath', arguments, async () => {
+            try {
+                const response = await this.axios.get(`${this.options.xinApi}/content/uuid-to-path`, {
+                    params: {
+                        uuid
+                    }
+                });
 
-		try {
-			const response = await this.axios.get(`${this.options.xinApi}/content/uuid-to-path`, {
-				params: {
-					uuid
-				}
-			});
+                if (!response || !response.data) {
+                    return null;
+                }
 
-			if (!response || !response.data) {
-				return null;
-			}
+                return response.data;
+            }
+            catch (ex) {
+                if (ex.response.status === 401) {
+                    throw new Error("Unauthorized request", ex);
+                }
+            }
+        });
 
-			return response.data;
-		}
-		catch (ex) {
-			if (ex.response.status === 401) {
-				throw new Error("Unauthorized request", ex);
-			}
-		}
 
 	}
 
@@ -442,25 +465,27 @@ class HippoConnection {
 	 * @returns {Promise<DocumentLocation>} is the uuid it represents.
 	 */
 	async pathToUuid(path) {
+	    return this.cache.namedMethod('pathToUuid', arguments, async () => {
+            try {
+                const response = await this.axios.get(`${this.options.xinApi}/content/path-to-uuid`, {
+                    params: {
+                        path
+                    }
+                });
 
-		try {
-			const response = await this.axios.get(`${this.options.xinApi}/content/path-to-uuid`, {
-				params: {
-					path
-				}
-			});
+                if (!response || !response.data) {
+                    return null;
+                }
 
-			if (!response || !response.data) {
-				return null;
-			}
+                return response.data;
+            }
+            catch (ex) {
+                if (ex.response.status === 401) {
+                    throw new Error("Unauthorized request", ex);
+                }
+            }
+        });
 
-			return response.data;
-		}
-		catch (ex) {
-			if (ex.response.status === 401) {
-				throw new Error("Unauthorized request", ex);
-			}
-		}
 	}
 
 }
