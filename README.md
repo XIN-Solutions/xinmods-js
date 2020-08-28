@@ -20,9 +20,16 @@ or member of the `restuser` group:
         xinApi: '/site/custom-api',
         assetPath: '/site/binaries',
         assetModPath: '/site/assetmod',
+        
+        caching: true|false,
     };
-    
+       
     const hippo = xinmods.connectTo('http://localhost:8080', 'admin', 'admin', options);
+        
+If caching is enabled the cache layer relies on the following environment variables to change its behaviour:
+
+* `CACHE_TTL`; ttl in seconds
+* `CACHE_DEBUG`; show state of cache when hit/stored.
         
 The `HippoConnection` object has a number of useful functions:
 
