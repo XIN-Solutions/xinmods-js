@@ -52,7 +52,11 @@ const DefaultOptions = {
  * @property {string} uuid - the uuid of the node
  */
 
-
+const DefaultCacheOptions = {
+    enabled: false,
+    ttl: 360,
+    cacheName: 'hippo-cache'
+};
 
 class HippoConnection {
 
@@ -65,6 +69,9 @@ class HippoConnection {
 	/** @type {SimpleCache} */
 	cache;
 
+	cacheOptions;
+
+
 
 	/**
 	 * Initialise the hippo connection.
@@ -73,14 +80,19 @@ class HippoConnection {
 	 * @param user	{string} the user to connect with
 	 * @param password {string} the password to connect with
 	 * @param options {object} options that we might use.
-     * @param options.caching {boolean} cache the results if set to true
+     * @param options.cache {object} contains caching options
+     * @param options.cache.enabled {boolean} cache the results if set to true
+     * @param options.cache.ttl {number} ttl for cache elements
+     * @param options.cache.cacheName {string} name of the cache to use
 	 */
 	constructor(host, user, password, options = {}) {
+
+	    this.cacheOptions = Object.assign({}, DefaultCacheOptions, options.cache || {});
 
 		this.host = host;
 		this.user = user;
 		this.password = password;
-		this.cache = new SimpleCache("hippo-cache", options.caching || false);
+		this.cache = new SimpleCache(this.cacheOptions.cacheName, this.cacheOptions.enabled);
 
 		this.axios = AxiosModule.create({
 			timeout: 1000,
@@ -192,7 +204,7 @@ class HippoConnection {
 
                 throw ex;
             }
-        });
+        }, this.cacheOptions.ttl);
 
 
 	}
@@ -270,7 +282,7 @@ class HippoConnection {
                     throw new Error("Unauthorized request", ex);
                 }
             }
-        });
+        }, this.cacheOptions.ttl);
 
 	}
 
@@ -373,7 +385,7 @@ class HippoConnection {
                     throw new Error("Unauthorized request", ex);
                 }
             }
-        });
+        }, this.cacheOptions.ttl);
 
 
 	}
@@ -422,7 +434,7 @@ class HippoConnection {
                     throw new Error("Unauthorized request", ex);
                 }
             }
-        });
+        }, this.cacheOptions.ttl);
 
 	}
 
@@ -453,7 +465,7 @@ class HippoConnection {
                     throw new Error("Unauthorized request", ex);
                 }
             }
-        });
+        }, this.cacheOptions.ttl);
 
 
 	}
@@ -484,7 +496,7 @@ class HippoConnection {
                     throw new Error("Unauthorized request", ex);
                 }
             }
-        });
+        }, this.cacheOptions.ttl);
 
 	}
 
