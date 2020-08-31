@@ -190,7 +190,7 @@ class HippoConnection {
             catch (ex) {
 
                 if (!ex.response) {
-                    console.error("Something happened: ", ex);
+                    console.error("Something happened (perhaps backend is down?) ", ex);
                 }
 
                 if (ex.response.status === 401) {
@@ -276,7 +276,7 @@ class HippoConnection {
             }
             catch (ex) {
                 if (!ex.response) {
-                    console.error("Something happened: ", ex);
+                    console.error("Something happened (perhaps backend is down?)", ex);
                 }
                 if (ex.response.status === 401) {
                     throw new Error("Unauthorized request", ex);
@@ -379,7 +379,7 @@ class HippoConnection {
             }
             catch (ex) {
                 if (!ex.response) {
-                    throw ex;
+                    throw new Error("Backend didn't respond", ex);
                 }
                 if (ex.response.status === 401) {
                     throw new Error("Unauthorized request", ex);
@@ -430,6 +430,9 @@ class HippoConnection {
                 return response.data;
             }
             catch (ex) {
+                if (!ex.response) {
+                    throw new Error("Backend didn't respond", ex);
+                }
                 if (ex.response.status === 401) {
                     throw new Error("Unauthorized request", ex);
                 }
@@ -461,6 +464,9 @@ class HippoConnection {
                 return response.data;
             }
             catch (ex) {
+                if (!ex.response) {
+                    throw new Error("Backend didn't respond", ex);
+                }
                 if (ex.response.status === 401) {
                     throw new Error("Unauthorized request", ex);
                 }
@@ -492,6 +498,9 @@ class HippoConnection {
                 return response.data;
             }
             catch (ex) {
+                if (!ex.response) {
+                    throw new Error("Backend didn't respond", ex);
+                }
                 if (ex.response.status === 401) {
                     throw new Error("Unauthorized request", ex);
                 }
