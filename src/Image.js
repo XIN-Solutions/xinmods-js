@@ -21,10 +21,12 @@ class Image {
 	hippo;
 	info;
 	operations;
+	imageInfo;
 
-	constructor(hippo, info) {
+	constructor(hippo, info, imageInfo = {}) {
 		this.hippo = hippo;
 		this.info = info;
+		this.imageInfo = imageInfo;
 		this.operations = [];
 	}
 
@@ -71,8 +73,16 @@ class Image {
 		return this;
 	}
 
+	getFocusValue() {
+        if (this.imageInfo && this.imageInfo.items && this.imageInfo.items.focus) {
+            return JSON.parse(this.imageInfo.items.focus);
+        }
+        return {x: 0, y: 0};
+    }
+
 	crop(width, height) {
-		this.operations.push(`crop=${width},${height}`);
+	    const focus = this.getFocusValue();
+		this.operations.push(`crop=${width},${height},${focus.x},${focus.y}`);
 		return this;
 	}
 

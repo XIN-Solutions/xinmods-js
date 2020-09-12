@@ -343,7 +343,8 @@ class HippoConnection {
 				return null;
 			}
 
-			return new Image(this, pathInfo);
+			const imageInfo = await this.getDocumentByUuid(imageUuid);
+			return new Image(this, pathInfo, imageInfo);
 		}
 		catch (ex) {
 			console.error("Something happened while grabbing the image uuid, caused by:", ex);
