@@ -94,6 +94,9 @@ class Image {
 		}
 
 		const opsStr = this.operations.join("/");
+		if (this.hippo.options.cdnUrl) {
+            return `${this.hippo.options.cdnUrl}/${opsStr}/binaries${this.info.path}`
+        }
 		return `${this.hippo.host}${this.hippo.options.assetModPath}/${opsStr}/binaries${this.info.path}`;
 	}
 

@@ -27,6 +27,7 @@ const DefaultOptions = {
 	xinApi: '/site/custom-api',
 	assetPath: '/site/binaries',
 	assetModPath: '/site/assetmod',
+    cdnUrl: null,
 
 };
 
