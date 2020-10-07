@@ -88,16 +88,27 @@ class Image {
 
 
 	toUrl() {
+	    const lastMod = (
+	        this.imageInfo.items && this.imageInfo.items.original
+                ? new Date(this.imageInfo.items.original.lastModified).getTime()
+                : null
+        );
+
 		// don't do anything to the image?
 		if (this.operations.length === 0) {
-			return `${this.hippo.host}${this.hippo.options.assetPath}${this.info.path}`
+            if (this.hippo.options.cdnUrl) {
+                return `${this.hippo.options.cdnUrl}/binaries${this.info.path}?v=${lastMod}`;
+            }
+            else {
+                return `${this.hippo.host}${this.hippo.options.assetPath}${this.info.path}?v=${lastMod}`;
+            }
 		}
 
 		const opsStr = this.operations.join("/");
 		if (this.hippo.options.cdnUrl) {
-            return `${this.hippo.options.cdnUrl}/${opsStr}/binaries${this.info.path}`
+            return `${this.hippo.options.cdnUrl}${this.hippo.options.assetModPath}/${opsStr}/v=${lastMod}/binaries${this.info.path}`;
         }
-		return `${this.hippo.host}${this.hippo.options.assetModPath}/${opsStr}/binaries${this.info.path}`;
+		return `${this.hippo.host}${this.hippo.options.assetModPath}/${opsStr}/v=${lastMod}/binaries${this.info.path}`;
 	}
 
 }
