@@ -96,7 +96,7 @@ class Image {
 
 		// don't do anything to the image?
 		if (this.operations.length === 0) {
-            if (this.hippo.options.cdnUrl) {
+            if (this.hippo.options.cdnUrl) { 
                 return `${this.hippo.options.cdnUrl}/binaries${this.info.path}?v=${lastMod}`;
             }
             else {
