@@ -313,8 +313,20 @@ class HippoConnection {
         if (!link || !link.link || link.link.type !== "local" || !link.link.id) {
 			return null;
 		}
+
 		const asset = await this.getDocumentByUuid(link.link.id);
-		return asset? asset.items.asset.link.url : null;
+		const uri = asset? asset.items.asset.link.url : null;
+		if (!uri) {
+		    return null;
+        }
+
+		const lastMod = new Date(asset.items.asset.lastModified).getTime();
+        if (this.options.cdnUrl) {
+            return `${this.options.cdnUrl}${uri}?v=${lastMod}`;
+        }
+        else {
+            return `${this.host}${uri}?v=${lastMod}`;
+        }
 	}
 
 	/**
