@@ -129,6 +129,10 @@ class HippoConnection {
 		return new QueryBuilder(this).newClause(clauseType);
 	}
 
+	newExternalImage(src) {
+	    return new Image(this, {}, {}).external(src);
+    }
+
 	/**
 	 * Convenience methods for creating 'and' clause expression
 	 * @returns {ClauseExpression}

@@ -22,12 +22,15 @@ class Image {
 	info;
 	operations;
 	imageInfo;
+	isExternal;
+	externalSrc;
 
 	constructor(hippo, info, imageInfo = {}) {
 		this.hippo = hippo;
 		this.info = info;
 		this.imageInfo = imageInfo;
 		this.operations = [];
+		this.isExternal = false;
 	}
 
 	clone() {
@@ -38,6 +41,12 @@ class Image {
 		this.operations = [];
 		return this;
 	}
+
+	external(src) {
+	    this.isExternal = true;
+	    this.externalSrc = src;
+	    return this;
+    }
 
 	greyscale() {
 		this.operations.push("filter=greyscale");
@@ -96,7 +105,7 @@ class Image {
 
 		// don't do anything to the image?
 		if (this.operations.length === 0) {
-            if (this.hippo.options.cdnUrl) { 
+            if (this.hippo.options.cdnUrl) {
                 return `${this.hippo.options.cdnUrl}/binaries${this.info.path}?v=${lastMod}`;
             }
             else {
@@ -104,11 +113,14 @@ class Image {
             }
 		}
 
+		// based on whether it is an external or internal request, build a different url
+		const path = this.isExternal ? `external/${this.externalSrc}` : `binaries${this.info.path}`;
+
 		const opsStr = this.operations.join("/");
 		if (this.hippo.options.cdnUrl) {
-            return `${this.hippo.options.cdnUrl}${this.hippo.options.assetModPath}/${opsStr}/v=${lastMod}/binaries${this.info.path}`;
+            return `${this.hippo.options.cdnUrl}${this.hippo.options.assetModPath}/${opsStr}/v=${lastMod}/${path}`;
         }
-		return `${this.hippo.host}${this.hippo.options.assetModPath}/${opsStr}/v=${lastMod}/binaries${this.info.path}`;
+		return `${this.hippo.host}${this.hippo.options.assetModPath}/${opsStr}/v=${lastMod}/${path}`;
 	}
 
 }
