@@ -96,7 +96,7 @@ class HippoConnection {
 		this.cache = new SimpleCache(this.cacheOptions.cacheName, this.cacheOptions.enabled);
 
 		this.axios = AxiosModule.create({
-			timeout: 1000,
+			timeout: 2500,
 			baseURL: this.host,
 			paramsSerializer(params) {
 				return qs.stringify(params, {
