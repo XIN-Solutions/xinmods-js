@@ -164,7 +164,7 @@ class HippoConnection {
 
 	    return this.cache.namedMethod('executeQuery', arguments, async () => {
             const defaultOptions = {
-                namespace: true,
+                namespace: false,
                 documents: true
             };
 
@@ -179,7 +179,7 @@ class HippoConnection {
                 }
 
                 // if set to true, let's go get the actual documents for this result.
-                if (opts.documents) {
+                if (opts.documents && !response.data.documents) {
 
                     response.data.documents = {};
 
@@ -189,6 +189,18 @@ class HippoConnection {
                         response.data.documents[uuid] = doc;
                     }
                 }
+                else if (opts.documents) {
+                	for (const docUuid in response.data.documents) {
+
+                		// sanitise document if requested.
+                		if (!opts.namespace) {
+							response.data.documents[docUuid] =
+								this.sanitiseDocument(response.data.documents[docUuid]);
+						}
+
+                		response.data.documents[docUuid].hippo = this;
+					}
+				}
 
                 return response.data;
             }
@@ -196,6 +208,7 @@ class HippoConnection {
 
                 if (!ex.response) {
                     console.error("Something happened (perhaps backend is down?) ", ex);
+                    return;
                 }
 
                 if (ex.response.status === 401) {
@@ -414,12 +427,35 @@ class HippoConnection {
 	 * @param path	{string} the path
 	 * @returns {null|*}
 	 */
-	async getDocumentByPath(path) {
-        const {uuid} = await this.pathToUuid(path);
-		if (!uuid) {
-			return null;
-		}
-		return await this.getDocumentByUuid(uuid);
+	async getDocumentByPath(path, options = {}) {
+		return this.cache.namedMethod('getDocumentByPath', arguments, async () => {
+
+			try {
+				const defaults = {
+					namespace: false
+				};
+
+				const opts = Object.assign({}, defaults, options);
+				const response = await this.axios.get(`${this.options.xinApi}/content/document-at-path?path=${encodeURIComponent(path)}`);
+
+				if (!response || !response.data || !response.data.document) {
+					return null;
+				}
+
+				const doc = response.data.document;
+				const returnDoc = (opts.namespace ? doc : this.sanitiseDocument(doc));
+				returnDoc.hippo = this;
+				return returnDoc;
+			}
+			catch (ex) {
+				if (!ex.response) {
+					throw new Error("Backend didn't respond", ex);
+				}
+				if (ex.response.status === 401) {
+					throw new Error("Unauthorized request", ex);
+				}
+			}
+		}, this.cacheOptions.ttl);
 	}
 
 	/**
