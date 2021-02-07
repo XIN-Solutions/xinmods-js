@@ -190,16 +190,21 @@ class HippoConnection {
                     }
                 }
                 else if (opts.documents) {
-                	for (const docUuid in response.data.documents) {
 
-                		// sanitise document if requested.
-                		if (!opts.namespace) {
-							response.data.documents[docUuid] =
-								this.sanitiseDocument(response.data.documents[docUuid]);
+                	const orderedDocs = {};
+
+					for (const resultRow of response.data.uuids) {
+						const {uuid} = resultRow;
+
+						if (!opts.namespace) {
+							orderedDocs[uuid] = this.sanitiseDocument(response.data.documents[uuid]);
 						}
 
-                		response.data.documents[docUuid].hippo = this;
+						orderedDocs[uuid].hippo = this;
 					}
+
+					response.data.documents = orderedDocs;
+
 				}
 
                 return response.data;
