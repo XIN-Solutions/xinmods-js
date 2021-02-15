@@ -78,35 +78,38 @@ class HippoConnection {
 	 * Initialise the hippo connection.
 	 *
 	 * @param host	{string} the host to connect to
-	 * @param user	{string} the user to connect with
-	 * @param password {string} the password to connect with
+	 * @param userOrJwt	{string} the user to connect with, if password is null, this will have a JWT token.
+	 * @param password {?string} the password to connect with, if null `user` is sent as Bearer token.
 	 * @param options {object} options that we might use.
      * @param options.cache {object} contains caching options
      * @param options.cache.enabled {boolean} cache the results if set to true
      * @param options.cache.ttl {number} ttl for cache elements
      * @param options.cache.cacheName {string} name of the cache to use
 	 */
-	constructor(host, user, password, options = {}) {
+	constructor(host, userOrJwt, password, options = {}) {
 
 	    this.cacheOptions = Object.assign({}, DefaultCacheOptions, options.cache || {});
 
 		this.host = host;
-		this.user = user;
+		this.user = userOrJwt;
 		this.password = password;
 		this.cache = new SimpleCache(this.cacheOptions.cacheName, this.cacheOptions.enabled);
 
-		this.axios = AxiosModule.create({
-			baseURL: this.host,
-			paramsSerializer(params) {
-				return qs.stringify(params, {
-					indices: false,
-				});
+		// setup axios settings based on the type of credentials that were provided.
+		const axiosSettings = Object.assign(
+			{
+				baseURL: this.host,
+				paramsSerializer(params) {
+					return qs.stringify(params, {
+						indices: false,
+					});
+				}
 			},
-			auth: {
-				username: this.user,
-				password: this.password
-			}
-		});
+			this.password? { auth: { username: this.user, password: this.password } } : {},
+			!this.password? { headers: { "Authorization" : "Bearer " + this.user } } : {}
+		)
+
+		this.axios = AxiosModule.create(axiosSettings);
 
 		this.options = Object.assign({}, DefaultOptions, options || {});
 	}
