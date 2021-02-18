@@ -20,6 +20,7 @@ const qs = require('qs');
 const SimpleCache = require('./SimpleCache.js');
 const Image = require('./Image.js');
 const QueryBuilder = require('./QueryBuilder.js');
+const Collections = require('./Collections.js');
 
 const DefaultOptions = {
 
@@ -121,6 +122,31 @@ class HippoConnection {
 	newQuery() {
 		return new QueryBuilder(this).newQuery();
 	}
+	
+	collection(name) {
+		if (!name) {
+			throw Error("Require a collection name to be specified");
+		}
+		return new Collections(this, name);
+	}
+	
+	/**
+	 * Create a query for a collection
+	 * @param collectionName	{string} the collection to query
+	 * @returns {Query} a query prepped for use in collection querying.
+	 */
+	newCollectionQuery(collectionName = null) {
+		if (!collectionName) {
+			throw Error("Require a collection name to be specified");
+		}
+
+		// return
+		return (
+			new QueryBuilder(this).newQuery()
+				.type("xinmods:collectionitem")
+				.includePath(`/content/collections/${collectionName}`)
+		);
+	}
 
 	/**
 	 * Creates starting point for where clause expression.
@@ -150,8 +176,26 @@ class HippoConnection {
 	orClause() {
 		return this.newClause('or');
 	}
-
-
+	
+	
+	
+	/**
+	 * List all collections currently available in the Bloomreach repository
+	 */
+	async listCollections() {
+		return this.cache.namedMethod('listCollections', [], async () => {
+			try {
+				const response = await this.axios.get(`${this.options.xinApi}/collections/list`);
+				return response.data.collections;
+			}
+			catch (err) {
+				console.error("couldn't retrieve list of collections", err);
+				return null;
+			}
+		});
+	}
+	
+	
 	/**
 	 * Execute the query in `query`. Depending on the options that are provided we might have
 	 * to do additional things.
