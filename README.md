@@ -168,6 +168,73 @@ Available operations are:
 * `image.brighter(nTimes)`; brightens the image a certain amount, this can be applied multiple times at once
 * `image.darker(nTimes)`; darkens the image a certain amount, this can be applied multiples times at once.
 
+## Collections
+
+The XIN Mods contains functionality called `collections`. It's an easy way to push new information into the JCR without
+worrying about that state of the document, having to create new folders or other such things. Its interface is inspired by 
+simple key-value store APIs such as Google's Firestore.
+
+Find a small snippet of code below that illustrates different aspects of how to interact with the collections endpoints.
+    
+    const xinmods = require('xinmods');
+
+    const hippo = xinmods.connectTo('http://localhost:8080', 'admin', 'admin');
+
+    const allCollections = await hippo.listCollections();
+    console.log("Collections:" , allCollections);
+ 
+    // get a Collections instance   
+    const coll = hippo.collection('your-collection');
+
+    // retrieve an item from this collection
+    const itemValues = await coll.get("new-folder/an-item-address");
+    console.log("ITEM: ", itemValues);
+    
+    //
+    // put some content into the collection.
+    // There is a third optional parameter called saveMode allowing you to specify
+    // the behaviour of new information that is placed into the collection.
+    // - Merge: (the default) merges this map with existing information of creates a new item
+    // - Overwrite: if content exists, it is deleted and overwritten with this new map
+    // - FailIfExists: cowardly refuse to write to the repo if something already exists. 
+    //
+    const putSuccess = await coll.put("new-folder/with-item", {
+        name: "Your name",
+        age: 35,
+        length: 1.83,
+        time: new Date()
+    });
+    
+    // convenience functions: .putAndOverwrite, .putAndMerge, .putIfNotExists 
+
+    console.log("PUT ITEM SUCCESS? ", putSuccess);
+    
+    
+    //
+    //	Delete one item only
+    //
+    const deleteSuccess = await coll.delete('new-folder/with-item');
+
+    //
+    //  Allow recursive deletion by specifying "true" for forceDelete parameter 
+    //
+    const deleteRecursiveSuccess = await coll.delete('new-folder/with-item', true);
+
+    // You can also query the collection. Fields are written to the node using the
+    // xinmods: namespace.
+    const query = (
+        hippo.collection('attendance').query()
+            .where()
+                .gte("xinmods:age", 5)
+            .end()
+        .build()
+    );
+
+    const results = await hippo.executeQuery(query);
+    console.log(results);
+
+Hope that helps. 
+
 ## XIN Mods
   
 A headless CMS, Content as a Service (CaaS) solution for Bloomreach Hippo.
