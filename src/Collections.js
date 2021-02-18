@@ -120,6 +120,13 @@ class Collections {
 			const type = typeof(val);
 			
 			switch (type) {
+				case 'boolean':
+					values[key] = {
+						value: val,
+						type: "Boolean"
+					};
+					break;
+				
 				case 'string':
 					values[key] = {
 						value: val,
