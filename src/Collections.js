@@ -2,17 +2,17 @@
  * Collections class
  */
 class Collections {
-	
+
 	/**
 	 * @type {HippoConnection}
 	 */
 	hippo;
-	
+
 	/**
 	 * @type {string}
 	 */
 	name;
-	
+
 	/**
 	 * Initialise data-members
 	 *
@@ -24,14 +24,14 @@ class Collections {
 		this.cache = hippo.cache;
 		this.name = name;
 	}
-	
+
 	/**
 	 * @returns {Query} the query object for querying this collection
 	 */
 	query() {
 		return this.hippo.newCollectionQuery(this.name);
 	}
-	
+
 	/**
 	 * Get an item from the collection
 	 *
@@ -44,7 +44,7 @@ class Collections {
 				const response = (
 					await this.hippo.axios.get(`${this.hippo.options.xinApi}/collections/${this.name}/item?path=${encodeURIComponent(path)}`)
 				);
-				
+
 				if (!response.data.success) {
 					return null;
 				}
@@ -56,7 +56,7 @@ class Collections {
 			}
 		});
 	}
-	
+
 	/**
 	 * Delete an item.
 	 *
@@ -71,7 +71,7 @@ class Collections {
 					`${this.hippo.options.xinApi}/collections/${this.name}/item?path=${encodeURIComponent(path)}&forceDelete=${forceDelete ? 'true': 'false'}`
 				)
 			);
-			
+
 			return response.data.success;
 		}
 		catch (err) {
@@ -79,7 +79,7 @@ class Collections {
 			return false;
 		}
 	}
-	
+
 	/**
 	 * Put a new item into the collections
 	 *
@@ -88,26 +88,26 @@ class Collections {
 	 * @param saveMode {'Merge'|'Overwrite'|'FailIfExists'} the save mode to write the content with.
 	 */
 	async put(path, object, saveMode = 'Merge') {
-		
+
 		try {
 			const values = this.serialise(object);
-			
+
 			const result = await this.hippo.axios.post(
 				`${this.hippo.options.xinApi}/collections/${this.name}/item?path=${encodeURIComponent(path)}`, {
 					saveMode,
 					values
 				});
-			
+
 			return result.data.success;
 		}
 		catch (err) {
 			console.error("Something happened when putting a new item:", err);
 			return false;
 		}
-		
-		
+
+
 	}
-	
+
 	/**
 	 * Serialise a javascript object into an object that can be ingested by the `post` item endpoint.
 	 * @param object {object} object to convert
@@ -118,7 +118,7 @@ class Collections {
 		for (const key in object) {
 			const val = object[key];
 			const type = typeof(val);
-			
+
 			switch (type) {
 				case 'boolean':
 					values[key] = {
@@ -126,21 +126,21 @@ class Collections {
 						type: "Boolean"
 					};
 					break;
-				
+
 				case 'string':
 					values[key] = {
 						value: val,
 						type: 'String'
 					};
 					break;
-				
+
 				case 'number':
 					values[key] = {
 						value: val,
 						type: Number.isInteger(val) ? "Long" : "Double"
 					};
 					break;
-				
+
 				case 'object':
 					if (val instanceof Date) {
 						values[key] = {
@@ -149,38 +149,38 @@ class Collections {
 						};
 						break;
 					}
-					
+
 					console.error("Don't know how to serialise object for key: " + key);
 					break;
-				
+
 				default:
 					console.error(`Don't know how to serialise key '${key}' of type '${type}'`);
-				
+
 			}
-			
+
 		}
-		
+
 		return values;
 	}
-	
+
 	/**
 	 * Convenience method for put with Overwrite save mode
 	 * @param object
 	 * @returns {*}
 	 */
-	async putAndOverwrite(object) {
-		return await this.put(object, 'Overwrite');
+	async putAndOverwrite(path, object) {
+		return await this.put(path, object, 'Overwrite');
 	}
-	
-	async putAndMerge(object) {
-		return await this.put(object, 'Merge');
+
+	async putAndMerge(path, object) {
+		return await this.put(path, object, 'Merge');
 	}
-	
-	async putIfNotExists(object) {
-		return await this.put(object, 'FailIfExists');
+
+	async putIfNotExists(path, object) {
+		return await this.put(path, object, 'FailIfExists');
 	}
-	
-	
+
+
 }
 
 module.exports = Collections;
