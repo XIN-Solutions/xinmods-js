@@ -15,6 +15,7 @@
 
 
 const AxiosModule = require('axios');
+const AxiosRetry = require('axios-retry');
 const qs = require('qs');
 
 const SimpleCache = require('./SimpleCache.js');
@@ -73,8 +74,6 @@ class HippoConnection {
 
 	cacheOptions;
 
-
-
 	/**
 	 * Initialise the hippo connection.
 	 *
@@ -112,6 +111,9 @@ class HippoConnection {
 
 		this.axios = AxiosModule.create(axiosSettings);
 
+		// add retry behaviours
+		AxiosRetry(this.axios, { retries: 3, retryDelay: AxiosRetry.exponentialDelay });
+
 		this.options = Object.assign({}, DefaultOptions, options || {});
 	}
 
@@ -122,14 +124,14 @@ class HippoConnection {
 	newQuery() {
 		return new QueryBuilder(this).newQuery();
 	}
-	
+
 	collection(name) {
 		if (!name) {
 			throw Error("Require a collection name to be specified");
 		}
 		return new Collections(this, name);
 	}
-	
+
 	/**
 	 * Create a query for a collection
 	 * @param collectionName	{string} the collection to query
@@ -176,9 +178,9 @@ class HippoConnection {
 	orClause() {
 		return this.newClause('or');
 	}
-	
-	
-	
+
+
+
 	/**
 	 * List all collections currently available in the Bloomreach repository
 	 */
@@ -194,8 +196,8 @@ class HippoConnection {
 			}
 		});
 	}
-	
-	
+
+
 	/**
 	 * Execute the query in `query`. Depending on the options that are provided we might have
 	 * to do additional things.
