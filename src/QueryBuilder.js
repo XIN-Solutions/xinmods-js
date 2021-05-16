@@ -50,6 +50,9 @@ class QueryBuilder {
  * @returns {{op: *, field: *, value: *}}
  */
 function operator(op, field, value) {
+	if (typeof(value) === 'string') {
+		value = value.replace(/'/g, "\\'");
+	}
 	return {op, field, value};
 }
 
