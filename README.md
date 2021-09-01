@@ -1,7 +1,7 @@
 # XIN Mods JS
 
 A package that interfaces with REST endpoints found in Bloomreach Hippo CMS with 
-[XIN Mods](https://xinsolutions.co.nz/bloomreach-hippo-cms-caas) installed on top. 
+[XIN Mods](https://xinsolutions.co.nz/bloomreach-headless-cms-caas) installed on top. 
 
 ## How to use
 
