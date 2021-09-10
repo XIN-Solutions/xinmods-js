@@ -91,7 +91,7 @@ class Image {
 
 	crop(width, height) {
 	    const focus = this.getFocusValue();
-		this.operations.push(`crop=${width},${height},${focus.x},${focus.y}`);
+		this.operations.push(`crop=${width},${height},${focus.x.toFixed(4)},${focus.y.toFixed(4)}`);
 		return this;
 	}
 
