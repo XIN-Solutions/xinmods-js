@@ -385,7 +385,7 @@ class HippoConnection {
 		}
 
 		const asset = await this.getDocumentByUuid(link.link.id);
-		const uri = asset? asset.items.asset.link.url : null;
+		const uri = asset ? asset.items.asset.link.url : null;
 		if (!uri) {
 		    return null;
         }
@@ -515,9 +515,11 @@ class HippoConnection {
 	 * List all documents at a certain path.
 	 *
 	 * @param path	{string} CMS path.
+	 * @param options {object} options
+	 * @param options.keepNamespace {boolean} if true don't scrub namespace from result.
 	 * @returns {*[]}
 	 */
-	async listDocuments(path) {
+	async listDocuments(path, options = {}) {
 	    return this.cache.namedMethod('listDocuments', arguments, async () => {
             try {
                 const response = await this.axios.get(`${this.options.xinApi}/content/documents-list`, {
@@ -533,6 +535,19 @@ class HippoConnection {
                 if (!response.data.success) {
                     return null;
                 }
+
+                // add hippo
+                if (response.data.documents) {
+                	for (const docHandle of response.data.documents) {
+                		// clean up namespaces
+                		if (!options.keepNamespace) {
+                			docHandle.document = this.sanitiseDocument(docHandle.document);
+						}
+
+                		// put hippo instance in document
+                		docHandle.document.hippo = this;
+					}
+				}
 
                 return response.data;
             }
