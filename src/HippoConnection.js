@@ -450,13 +450,13 @@ class HippoConnection {
             const opts = Object.assign({}, defaults, options);
 
             try {
-                const response = await this.axios.get(`${this.options.hippoApi}/documents/${uuid}`);
+                const response = await this.axios.get(`${this.options.xinApi}/content/document-with-uuid?uuid=${uuid}`);
 
                 if (!response || !response.data) {
                     return null;
                 }
 
-                const doc = response.data;
+                const doc = response.data.document;
                 const returnDoc = (opts.namespace ? doc : this.sanitiseDocument(doc));
                 returnDoc.hippo = this;
                 return returnDoc;
