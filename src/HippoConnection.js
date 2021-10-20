@@ -390,12 +390,18 @@ class HippoConnection {
 		    return null;
         }
 
+		// pop last two elements off of the asset url if hippogallery is part of the url.
+		const uriParts = uri.split("/");
+		if (uri.indexOf("/hippogallery") !== -1) {
+			uriParts.pop(); uriParts.pop();
+		}
+		const normalisedUri = uriParts.join("/");
 		const lastMod = new Date(asset.items.asset.lastModified).getTime();
         if (this.options.cdnUrl) {
-            return `${this.options.cdnUrl}${uri}?v=${lastMod}`;
+            return `${this.options.cdnUrl}${normalisedUri}?v=${lastMod}`;
         }
         else {
-            return `${this.host}${uri}?v=${lastMod}`;
+            return `${normalisedUri}?v=${lastMod}`;
         }
 	}
 
