@@ -12,6 +12,7 @@
  */
 
 const HippoConnection = require('./src/HippoConnection.js');
+const Image = require('./src/Image.js');
 
 module.exports = {
 
@@ -27,6 +28,8 @@ module.exports = {
 	 */
 	connectTo(url, user, password, options = {}) {
 		return new HippoConnection(url, user, password, options);
-	}
+	},
+
+	Image
 
 };

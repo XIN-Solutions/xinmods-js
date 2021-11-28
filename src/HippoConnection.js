@@ -418,15 +418,20 @@ class HippoConnection {
 
 	/**
 	 * Retrieve the image object for an image link object
-	 * @param link  the link object
+	 * @param imageLink  the link object
 	 * @returns {Promise<null|Image>}
 	 */
-	async getImageFromLink(link) {
-        if (!link || !link.link || !link.link.id) {
+	async getImageFromLink(imageLink) {
+        if (!imageLink || !imageLink.link || !imageLink.link.id) {
 			return null;
 		}
 
-		const imageUuid = link.link.id
+        // if the link was prefetched use the `ref` object to populate the Image instance
+        if (imageLink.ref) {
+        	return new Image(this, imageLink.ref, imageLink.ref);
+		}
+
+		const imageUuid = imageLink.link.id
 		return this.getImageFromUuid(imageUuid);
 	}
 

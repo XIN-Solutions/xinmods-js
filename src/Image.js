@@ -34,7 +34,7 @@ class Image {
 	}
 
 	clone() {
-		return new Image(this.hippo, this.info);
+		return new Image(this.hippo, this.info, this.imageInfo || {});
 	}
 
 	reset() {
