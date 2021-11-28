@@ -203,9 +203,12 @@ class HippoConnection {
 	 * to do additional things.
 	 *
 	 * @param query     {string} the query to execute
+	 *
 	 * @param options   {object}
 	 * @param options.documents {boolean} if set to true transform the uuid results into documents (default: true).
 	 * @param options.namespace {boolean} keep the namespace information in the documents? (default: false)
+	 * @param options.fetch {string[]} a list of elements to fetch during the request so we don't have to do roundtrips
+	 *
 	 * @returns {Promise<QueryResult>}
 	 */
 	async executeQuery(query, options = {}) {
@@ -213,45 +216,53 @@ class HippoConnection {
 	    return this.cache.namedMethod('executeQuery', arguments, async () => {
             const defaultOptions = {
                 namespace: false,
-                documents: true
+                documents: true,
+				fetch: []
             };
 
             const opts = Object.assign({}, defaultOptions, options);
 
             try {
 
-                const response = await this.axios.get(`${this.options.xinApi}/content/query?query=${encodeURIComponent(query)}`);
+                const response =
+					await this.axios.get(`${this.options.xinApi}/content/query`, {
+							params: {
+								query,
+								fetch: opts.fetch
+							}
+						}
+					);
 
                 if (!response || !response.data) {
                     return null;
                 }
 
-                // if set to true, let's go get the actual documents for this result.
+                // if set to true and the response doesn't have any documents yet (old behaviour),
+				// let's go get the actual documents for this result.
                 if (opts.documents && !response.data.documents) {
 
-                    response.data.documents = {};
+                    response.data.documents = [];
 
                     for (const resultRow of response.data.uuids) {
                         const {uuid} = resultRow;
                         const doc = await this.getDocumentByUuid(uuid, opts);
-                        response.data.documents[uuid] = doc;
+                        response.data.documents.push(doc);
                     }
                 }
                 else if (opts.documents) {
 
-                	const orderedDocs = {};
+                	for (const docIdx in response.data.documents) {
 
-					for (const resultRow of response.data.uuids) {
-						const {uuid} = resultRow;
-
-						if (!opts.namespace) {
-							orderedDocs[uuid] = this.sanitiseDocument(response.data.documents[uuid]);
+                		if (!response.data.documents.hasOwnProperty(docIdx)) {
+                			continue;
 						}
 
-						orderedDocs[uuid].hippo = this;
-					}
+						if (!opts.namespace) {
+							response.data.documents[docIdx] = this.sanitiseDocument(response.data.documents[docIdx]);
+						}
 
-					response.data.documents = orderedDocs;
+                		response.data.documents[docIdx].hippo = this;
+					}
 
 				}
 
@@ -444,19 +455,29 @@ class HippoConnection {
 	/**
 	 * Retrieve a document from Hippo by its UUID
 	 * @param uuid	{string} the uuid to retrieve
+	 * @param options {object} the options object
+	 * @param options.namespace {boolean} set to true if you'd like to get the namespace labels in the results
+	 * @param options.fetch {string[]} a list of elements to fetch during the request so we don't have to do roundtrips
 	 * @returns {object?}
 	 */
 	async getDocumentByUuid(uuid, options = {}) {
 	    return this.cache.namedMethod('getDocumentByUuid', arguments, async () => {
 
             const defaults = {
-                namespace: false
+                namespace: false,
+				fetch: []
             };
 
             const opts = Object.assign({}, defaults, options);
 
             try {
-                const response = await this.axios.get(`${this.options.xinApi}/content/document-with-uuid?uuid=${uuid}`);
+                const response =
+					await this.axios.get(`${this.options.xinApi}/content/document-with-uuid`, {
+                		params: {
+                			uuid,
+							fetch: opts.fetch
+						}
+					});
 
                 if (!response || !response.data) {
                     return null;
@@ -484,6 +505,9 @@ class HippoConnection {
 	 * Get a document by its path.
 	 *
 	 * @param path	{string} the path
+	 * @param options {object} the options object
+	 * @param options.namespace {boolean} set to true if you'd like to get the namespace labels in the results
+	 * @param options.fetch {string[]} a list of elements to fetch during the request so we don't have to do roundtrips
 	 * @returns {null|*}
 	 */
 	async getDocumentByPath(path, options = {}) {
@@ -491,11 +515,19 @@ class HippoConnection {
 
 			try {
 				const defaults = {
-					namespace: false
+					namespace: false,
+					fetch: []
 				};
 
 				const opts = Object.assign({}, defaults, options);
-				const response = await this.axios.get(`${this.options.xinApi}/content/document-at-path?path=${encodeURIComponent(path)}`);
+				const response = await this.axios.get(
+					`${this.options.xinApi}/content/document-at-path`, {
+						params: {
+							path,
+							fetch: opts.fetch
+						}
+					}
+				);
 
 				if (!response || !response.data || !response.data.document) {
 					return null;
