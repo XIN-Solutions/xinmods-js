@@ -26,7 +26,8 @@ class Image {
 	externalSrc;
 
 	constructor(hippo, info, imageInfo = {}) {
-		this.hippo = hippo;
+		Object.defineProperty(this, 'hippo', {value: hippo, writable: false});
+
 		this.info = info;
 		this.imageInfo = imageInfo;
 		this.operations = [];

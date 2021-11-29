@@ -4,11 +4,6 @@
 class Collections {
 
 	/**
-	 * @type {HippoConnection}
-	 */
-	hippo;
-
-	/**
 	 * @type {string}
 	 */
 	name;
@@ -20,7 +15,7 @@ class Collections {
 	 * @param name {string} the collection name we're working with
 	 */
 	constructor(hippo, name) {
-		this.hippo = hippo;
+		Object.defineProperty(this, 'hippo', {value: hippo, writable: false});
 		this.cache = hippo.cache;
 		this.name = name;
 	}

@@ -16,7 +16,7 @@ class QueryBuilder {
 	 * @param hippo {HippoConnection} connection instance
 	 */
 	constructor(hippo) {
-		this.hippo = hippo;
+		Object.defineProperty(this, 'hippo', {value: hippo, writable: false});
 	}
 
 	/**
@@ -371,7 +371,7 @@ class Query {
 	 * @param hippo the hippo connector.
 	 */
 	constructor(hippo) {
-		this.hippo = hippo;
+		Object.defineProperty(this, 'hippo', {value: this, writable: false});
 	}
 
 	/**
