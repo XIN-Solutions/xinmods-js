@@ -395,7 +395,7 @@ class HippoConnection {
 			return null;
 		}
 
-		const asset = await this.getDocumentByUuid(link.link.id);
+		const asset = link.link.ref ? link.link.ref : await this.getDocumentByUuid(link.link.id);
 		const uri = asset ? asset.items.asset.link.url : null;
 		if (!uri) {
 		    return null;
@@ -427,8 +427,8 @@ class HippoConnection {
 		}
 
         // if the link was prefetched use the `ref` object to populate the Image instance
-        if (imageLink.ref) {
-        	return new Image(this, imageLink.ref, imageLink.ref);
+        if (imageLink.link.ref) {
+        	return new Image(this, imageLink.link.ref, imageLink.link.ref);
 		}
 
 		const imageUuid = imageLink.link.id
