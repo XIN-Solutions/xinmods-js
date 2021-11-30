@@ -560,14 +560,16 @@ class HippoConnection {
 	 * @param path	{string} CMS path.
 	 * @param options {object} options
 	 * @param options.keepNamespace {boolean} if true don't scrub namespace from result.
-	 * @returns {*[]}
+	 * @param options.fetch {string[]} a list of elements to fetch during the request so we don't have to do roundtrips
+	 * @returns {Promise<*[]>}
 	 */
 	async listDocuments(path, options = {}) {
 	    return this.cache.namedMethod('listDocuments', arguments, async () => {
             try {
                 const response = await this.axios.get(`${this.options.xinApi}/content/documents-list`, {
                     params: {
-                        path
+                        path,
+						fetch: options.fetch
                     }
                 });
 
