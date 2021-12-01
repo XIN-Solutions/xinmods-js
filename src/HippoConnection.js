@@ -261,7 +261,7 @@ class HippoConnection {
 							response.data.documents[docIdx] = this.sanitiseDocument(response.data.documents[docIdx]);
 						}
 
-						Object.defineProperty(response.data.documents[docIdx], 'hippo', {value: this, writable: false});
+						response.data.documents[docIdx].hippo = this;
 					}
 
 				}
@@ -353,7 +353,7 @@ class HippoConnection {
                 }
 
                 const returnData = response.data;
-				Object.defineProperty(returnData, 'hippo', {value: this, writable: false});
+                returnData.hippo = this;
                 return returnData;
             }
             catch (ex) {
@@ -490,7 +490,7 @@ class HippoConnection {
 
                 const doc = response.data.document;
                 const returnDoc = (opts.namespace ? doc : this.sanitiseDocument(doc));
-				Object.defineProperty(returnDoc, 'hippo', {value: this, writable: false});
+                returnDoc.hippo = this;
                 return returnDoc;
             }
             catch (ex) {
@@ -540,7 +540,7 @@ class HippoConnection {
 
 				const doc = response.data.document;
 				const returnDoc = (opts.namespace ? doc : this.sanitiseDocument(doc));
-				Object.defineProperty(returnDoc, 'hippo', {value: this, writable: false});
+				returnDoc.hippo = this;
 				return returnDoc;
 			}
 			catch (ex) {
@@ -590,7 +590,7 @@ class HippoConnection {
 						}
 
                 		// put hippo instance in document
-						Object.defineProperty(docHandle.document, 'hippo', {value: this, writable: false});
+						docHandle.document.hippo = this;
 					}
 				}
 
