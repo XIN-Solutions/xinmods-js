@@ -396,10 +396,42 @@ class HippoConnection {
 		}
 
 		const asset = link.link.ref ? link.link.ref : await this.getDocumentByUuid(link.link.id);
+		return this._retrieveAssetLink(asset);
+	}
+
+
+	/**
+	 * Retrieve an asset url from a linked asset.
+	 *
+	 * @param link	the link object
+	 * @returns {?string} the url for this asset.
+	 */
+	getAssetUrlFromLinkSync(link) {
+		if (!link || !link.link || link.link.type !== "local" || !link.link.id) {
+			return null;
+		}
+
+		if (!link.link.ref) {
+			console.error("error: cannot determine asset link synchronously without pre-populated references.");
+			return null;
+		}
+
+		const asset = link.link.ref;
+		return this._retrieveAssetLink(asset);
+	}
+
+
+	/**
+	 * Logic to retrieve the asset url for.
+	 * @param asset {object} the asset object returned by brxm.
+	 * @returns {string|null}
+	 * @private
+	 */
+	_retrieveAssetLink(asset) {
 		const uri = asset ? asset.items.asset.link.url : null;
 		if (!uri) {
-		    return null;
-        }
+			return null;
+		}
 
 		// pop last two elements off of the asset url if hippogallery is part of the url.
 		const uriParts = uri.split("/");
@@ -408,12 +440,31 @@ class HippoConnection {
 		}
 		const normalisedUri = uriParts.join("/");
 		const lastMod = new Date(asset.items.asset.lastModified).getTime();
-        if (this.options.cdnUrl) {
-            return `${this.options.cdnUrl}${normalisedUri}?v=${lastMod}`;
-        }
-        else {
-            return `${normalisedUri}?v=${lastMod}`;
-        }
+		if (this.options.cdnUrl) {
+			return `${this.options.cdnUrl}${normalisedUri}?v=${lastMod}`;
+		}
+		else {
+			return `${normalisedUri}?v=${lastMod}`;
+		}
+	}
+
+	/**
+	 * Retrieve the image object for an image link object
+	 * @param imageLink  the link object
+	 * @returns {Promise<null|Image>}
+	 */
+	getImageFromLinkSync(imageLink) {
+		if (!imageLink || !imageLink.link || !imageLink.link.id) {
+			return null;
+		}
+
+		// if the link was prefetched use the `ref` object to populate the Image instance
+		if (imageLink.link.ref) {
+			return new Image(this, imageLink.link.ref, imageLink.link.ref);
+		}
+
+		console.error("error: could not load image link without pre-populated reference.")
+		return null;
 	}
 
 	/**
