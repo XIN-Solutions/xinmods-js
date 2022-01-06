@@ -235,6 +235,53 @@ Find a small snippet of code below that illustrates different aspects of how to 
 
 Hope that helps. 
 
+## Faceted Navigation
+
+To interact with faceted navigation nodes in the brXM JCR you can use the HippoConnection function `getFacetAtPath`. It 
+will retrieve information about a faceted navigation node. 
+
+
+    hippo.getFacetAtPath("/content/facets/specs", "Carrier Signals", {fetch: ["images/*/link"]})
+        .then(result => console.log(result))
+        .catch( err => console.error(err))
+    ;
+
+The method signature is as follows:
+
+```
+/**
+ * Retrieve information about a faceted navigation sub node.
+ *
+ * @param facetPath {string} the content path to the facet we're navigating
+ * @param childPath {?string} the child nav path inside the facet
+ *
+ * @param options {object} option object
+ * @param options.namespace {boolean} if true, retain namespace information in results.
+ * @param options.fetch {string[]} list of prefetched paths
+ * @param options.limit {number} max number of elements
+ * @param options.offset {number} where to start reading results from
+ * @param options.sorted {boolean} true if using the facet nav sorting options, otherwise ordered by lucene score.
+ *
+ * @returns {Promise<?FacetItem>}
+ */
+```
+
+The `FacetItem` object has the following structure:
+
+```
+/**
+ * @typedef FacetItem
+ * @property {HippoConnection} hippo - the connection used to retrieve the information
+ * @property {string} sourceFacet - the base node of this facet
+ * @property {string} facetPath - the path we've queried for
+ * @property {string} displayName - the name of the current facet
+ * @property {number} totalCount - the total number of elements in this facet.
+ * @property {object} childFacets - association of child facets as keys with their result count as the value
+ * @property {object[]} results - the documents part of this facet item.
+ */
+```
+
+
 ## XIN Mods
   
 A headless CMS, Content as a Service (CaaS) solution for Bloomreach Hippo.

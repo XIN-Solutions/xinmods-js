@@ -40,19 +40,41 @@ const DefaultOptions = {
  * @property {QueryResultUUID[]} uuids - a list of uuid information, one for each result
  * @property {number} totalSize - the number of results
  * @property {object} documents - map with uuid as key and
- *
+ */
+
+/**
  * @typedef QueryResultUUID
  * @property {string} uuid - the uuid of this document
  * @property {stirng} path - full JCR path for this document
  * @property {string} url - the local URL document details
  * @property {string} type - the type of this result
- *
+ */
+
+/**
  * @typedef DocumentLocation
  * @property {boolean} success - true if something useful was returned
  * @property {string} message - the message that came back
  * @property {string} path - the path we've retrieved
  * @property {string} type - the type of the node that lives there
  * @property {string} uuid - the uuid of the node
+ */
+
+/**
+ * @typedef FacetResponse
+ * @property {boolean} success - true if all went well
+ * @property {string} message - describes how everything went
+ * @property {FacetItem} facet - the facet result
+ */
+
+/**
+ * @typedef FacetItem
+ * @property {HippoConnection} hippo - the connection used to retrieve the information
+ * @property {string} sourceFacet - the base node of this facet
+ * @property {string} facetPath - the path we've queried for
+ * @property {string} displayName - the name of the current facet
+ * @property {number} totalCount - the total number of elements in this facet.
+ * @property {object} childFacets - association of child facets as keys with their result count as the value
+ * @property {object[]} results - the documents part of this facet item.
  */
 
 const DefaultCacheOptions = {
@@ -373,6 +395,75 @@ class HippoConnection {
 	 */
 	hasDate(value) {
 		return value.indexOf("0001") !== 0
+	}
+
+	/**
+	 * Retrieve information about a faceted navigation sub node.
+	 *
+	 * @param facetPath {string} the content path to the facet we're navigating
+	 * @param childPath {?string} the child nav path inside the facet
+	 *
+	 * @param options {object} option object
+	 * @param options.namespace {boolean} if true, retain namespace information in results.
+	 * @param options.fetch {string[]} list of prefetched paths
+	 * @param options.limit {number} max number of elements
+	 * @param options.offset {number} where to start reading results from
+	 * @param options.sorted {boolean} true if using the facet nav sorting options, otherwise ordered by lucene score.
+	 *
+	 * @returns {Promise<?FacetItem>}
+	 */
+	async getFacetAtPath(facetPath, childPath = null, options = {}) {
+
+		return this.cache.namedMethod('getFacetAtPath', arguments, async () => {
+
+			const defaults = {
+				namespace: false,
+				fetch: []
+			};
+
+			const opts = Object.assign({}, defaults, options);
+
+			try {
+				const response =
+					await this.axios.get(`${this.options.xinApi}/facets/get`, {
+						params: {
+							facetPath,
+							childPath,
+							offset: opts.offset ?? 0,
+							limit: opts.limit ?? 50,
+							sorted: opts.sorted ?? false,
+							fetch: opts.fetch
+						}
+					});
+
+				if (!response || !response.data) {
+					return null;
+				}
+
+				/** @type {FacetResponse} */
+				const result = response.data;
+
+				if (!opts.namespace) {
+					result.facet.results = (result.facet.results || []).map(doc => {
+						const convert = this.sanitiseDocument(doc);
+						convert.hippo = this;
+						return convert;
+					});
+				}
+
+				return result.facet;
+			}
+			catch (ex) {
+				console.log("Error: ", ex.message);
+				if (!ex.response) {
+					throw new Error("Backend didn't respond", ex);
+				}
+				if (ex.response.status === 401) {
+					throw new Error("Unauthorized request", ex);
+				}
+			}
+		}, this.cacheOptions.ttl);
+
 	}
 
 	/**
