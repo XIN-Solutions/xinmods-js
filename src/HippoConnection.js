@@ -542,7 +542,7 @@ class HippoConnection {
 	/**
 	 * Retrieve the image object for an image link object
 	 * @param imageLink  the link object
-	 * @returns {Promise<null|Image>}
+	 * @returns {?Image}
 	 */
 	getImageFromLinkSync(imageLink) {
 		if (!imageLink || !imageLink.link || !imageLink.link.id) {
