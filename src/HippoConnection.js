@@ -45,7 +45,7 @@ const DefaultOptions = {
 /**
  * @typedef QueryResultUUID
  * @property {string} uuid - the uuid of this document
- * @property {stirng} path - full JCR path for this document
+ * @property {string} path - full JCR path for this document
  * @property {string} url - the local URL document details
  * @property {string} type - the type of this result
  */
