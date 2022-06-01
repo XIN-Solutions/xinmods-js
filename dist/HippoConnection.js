@@ -74,8 +74,6 @@ var AxiosModule = require('axios');
 
 var AxiosRetry = require('axios-retry');
 
-var AxiosCachedDnsResolve = require('axios-cached-dns-resolve');
-
 var qs = require('qs');
 
 var SimpleCache = require('./SimpleCache.js');
@@ -202,9 +200,7 @@ var HippoConnection = /*#__PURE__*/function () {
         "Authorization": "Bearer " + this.user
       }
     } : {});
-    this.axios = AxiosModule.create(axiosSettings); // add dns.lookup cache mechanism
-
-    AxiosCachedDnsResolve.registerInterceptor(this.axios); // add retry behaviours
+    this.axios = AxiosModule.create(axiosSettings); // add retry behaviours
 
     AxiosRetry(this.axios, {
       retries: 3,
