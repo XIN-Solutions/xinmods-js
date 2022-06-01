@@ -1,6 +1,6 @@
 {
   "name": "xinmods",
-  "version": "1.6.11",
+  "version": "1.6.12",
   "description": "Javascript implementation for XIN Mods CMS REST interactions",
   "main": "index.js",
   "scripts": {
