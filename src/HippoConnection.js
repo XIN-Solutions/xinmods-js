@@ -16,6 +16,7 @@
 
 const AxiosModule = require('axios');
 const AxiosRetry = require('axios-retry');
+const AxiosCachedDnsResolve = require('axios-cached-dns-resolve');
 const qs = require('qs');
 
 const SimpleCache = require('./SimpleCache.js');
@@ -118,6 +119,7 @@ class HippoConnection {
 		this.cache = new SimpleCache(this.cacheOptions.cacheName, this.cacheOptions.enabled);
 
 		// setup axios settings based on the type of credentials that were provided.
+
 		const axiosSettings = Object.assign(
 			{
 				baseURL: this.host,
@@ -132,6 +134,9 @@ class HippoConnection {
 		)
 
 		this.axios = AxiosModule.create(axiosSettings);
+
+		// add dns.lookup cache mechanism
+		AxiosCachedDnsResolve.registerInterceptor(this.axios);
 
 		// add retry behaviours
 		AxiosRetry(this.axios, { retries: 3, retryDelay: AxiosRetry.exponentialDelay });
