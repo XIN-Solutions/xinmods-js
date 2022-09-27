@@ -1,29 +1,25 @@
 {
-  "name": "xinmods",
-  "version": "1.7.0",
-  "description": "Javascript implementation for XIN Mods CMS REST interactions",
-  "main": "index.js",
-  "scripts": {
-    "build": "./node_modules/@babel/cli/bin/babel.js src -d dist",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "release": "npm version patch && npm publish"
-  },
-  "author": "Marnix Kok <marnix@xinsolutions.co.nz>",
-  "license": "Apache-2.0",
-  "dependencies": {
-    "axios": "^0.24.0",
-    "axios-retry": "3.2.4",
-    "qs": "^6.10.1",
-    "node-cache": "^5.1.2"
-  },
-  "devDependencies": {
-    "@babel/core": "^7.16.12",
-    "@babel/cli": "^7.16.8",
-    "@babel/preset-env": "^7.16.11",
-    "@babel/plugin-transform-runtime": "^7.16.10",
-    "@babel/runtime": "^7.16.7",
-    "acorn": "^8.7.0",
-    "babel-loader": "^8.2.3",
-    "core-js": "^3.20.3"
-  }
+	"name": "xinmods",
+	"version": "2.0.0",
+	"description": "Javascript implementation for XIN Mods CMS REST interactions (ESM)",
+	"main": "index.js",
+	"type": "module",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"release": "npm version patch && npm publish"
+	},
+	"engines": {
+		"node": ">= 16"
+	},
+	"author": "Marnix Kok <marnix@xinsolutions.co.nz>",
+	"license": "Apache-2.0",
+	"dependencies": {
+		"axios": "^0.24.0",
+		"axios-retry": "3.2.4",
+		"qs": "^6.10.1",
+		"node-cache": "^5.1.2"
+	},
+	"devDependencies": {
+		"mocha": "^10.0.0"
+	}
 }

@@ -6,7 +6,7 @@
 /**
  * A query builder class with some functions that hand off to other classes
  */
-class QueryBuilder {
+export class QueryBuilder {
 
 	hippo;
 
@@ -60,7 +60,7 @@ function operator(op, field, value) {
  * An object that contains information about clauses in the where clause, this
  * can be the first level, or a deeper down compound expression (like OR and AND).
  */
-class ClauseExpression {
+export class ClauseExpression {
 
 	parent;
 	prefix;
@@ -355,7 +355,7 @@ class ClauseExpression {
 /**
  * The query class
  */
-class Query {
+export class Query {
 
 	hippo;
 
@@ -485,6 +485,3 @@ class Query {
 	}
 
 }
-
-
-module.exports = QueryBuilder;

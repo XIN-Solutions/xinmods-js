@@ -16,7 +16,7 @@
             * filters: greyscale, brighter, darker
  */
 
-class Image {
+export class Image {
 
 	hippo;
 	info;
@@ -125,5 +125,3 @@ class Image {
 	}
 
 }
-
-module.exports = Image;

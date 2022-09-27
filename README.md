@@ -3,6 +3,9 @@
 A package that interfaces with REST endpoints found in Bloomreach Hippo CMS with 
 [XIN Mods](https://xinsolutions.co.nz/bloomreach-headless-cms-caas) installed on top. 
 
+NOTE: This is the ESM version of the previous CommonJS implementation of the `xinmods` package. Use the latest in the 
+`1.x` version range if you're after the CommonJS version.  
+
 ## How to use
 
 Use the library simply by including it into your `package.json`.

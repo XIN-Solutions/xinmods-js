@@ -14,24 +14,16 @@
  */
 
 
-const AxiosModule = require('axios');
-const AxiosRetry = require('axios-retry');
-const qs = require('qs');
+import AxiosRetry from 'axios-retry';
+import AxiosModule from 'axios';
+import * as qs from 'qs';
 
-const SimpleCache = require('./SimpleCache.js');
-const Image = require('./Image.js');
-const QueryBuilder = require('./QueryBuilder.js');
-const Collections = require('./Collections.js');
+import {SimpleCache} from "./SimpleCache.js";
+import {Image} from "./Image.js";
+import {QueryBuilder} from "./QueryBuilder.js";
+import {Collections} from "./Collections.js";
 
-const DefaultOptions = {
 
-	hippoApi: '/site/api',
-	xinApi: '/site/custom-api',
-	assetPath: '/site/binaries',
-	assetModPath: '/site/assetmod',
-    cdnUrl: null,
-
-};
 
 /**
  * @typedef QueryResult
@@ -77,13 +69,13 @@ const DefaultOptions = {
  * @property {object[]} results - the documents part of this facet item.
  */
 
-const DefaultCacheOptions = {
+export const DefaultCacheOptions = {
     enabled: false,
     ttl: 360,
     cacheName: 'hippo-cache'
 };
 
-class HippoConnection {
+export class HippoConnection {
 
 	host;
 	user;
@@ -103,9 +95,14 @@ class HippoConnection {
 	 * @param userOrJwt	{string} the user to connect with, if password is null, this will have a JWT token.
 	 * @param password {?string} the password to connect with, if null `user` is sent as Bearer token.
 	 * @param options {object} options that we might use.
-     * @param options.cache {object} contains caching options
-     * @param options.cache.enabled {boolean} cache the results if set to true
-     * @param options.cache.ttl {number} ttl for cache elements
+     * @param options.cache {?object} contains caching options
+     * @param options.cache.enabled {?boolean} cache the results if set to true
+     * @param options.cache.ttl {?number} ttl for cache elements
+	 * @param options.hippoApi {string} path to built-in APIs
+	 * @param options.xinApi {string} path to custom APIs
+	 * @param options.assetPath {string} where to find images and assets
+	 * @param options.assetModPath {string} the prefix for modifying assets
+	 * @param options.cdnUrl {?string} custom URL for binaries (so it can go through something like CloudFront)
      * @param options.cache.cacheName {string} name of the cache to use
 	 */
 	constructor(host, userOrJwt, password, options = {}) {
@@ -137,7 +134,7 @@ class HippoConnection {
 		// add retry behaviours
 		AxiosRetry(this.axios, { retries: 3, retryDelay: AxiosRetry.exponentialDelay });
 
-		this.options = Object.assign({}, DefaultOptions, options || {});
+		this.options = Object.assign({}, options || {});
 	}
 
 	/**
@@ -820,6 +817,3 @@ class HippoConnection {
 	}
 
 }
-
-
-module.exports = HippoConnection;

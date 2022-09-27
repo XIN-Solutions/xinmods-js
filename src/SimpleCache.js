@@ -1,4 +1,5 @@
-const NodeCache = require('node-cache');
+import pkg from 'node-cache';
+const NodeCache = pkg;
 
 /**
  * The default options for in the cache configuration (https://www.npmjs.com/package/node-cache)
@@ -13,7 +14,7 @@ const caches = {};
 /**
  * Cache service that caches information on a per/customer basis.
  */
-class SimpleCache {
+export class SimpleCache {
 
     name;
     enabled;
@@ -125,5 +126,3 @@ class SimpleCache {
 
 }
 
-
-module.exports = SimpleCache;

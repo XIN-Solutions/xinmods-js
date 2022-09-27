@@ -1,7 +1,7 @@
 /**
  * Collections class
  */
-class Collections {
+export class Collections {
 
 	/**
 	 * @type {string}
@@ -177,5 +177,3 @@ class Collections {
 
 
 }
-
-module.exports = Collections;
