@@ -17,7 +17,7 @@
 		"axios": "^0.24.0",
 		"axios-retry": "3.2.4",
 		"qs": "^6.10.1",
-		"node-cache": "^5.1.2"
+		"cache-manager": "^4.1.0"
 	},
 	"devDependencies": {
 		"mocha": "^10.0.0"

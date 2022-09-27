@@ -18,7 +18,6 @@ import AxiosRetry from 'axios-retry';
 import AxiosModule from 'axios';
 import * as qs from 'qs';
 
-import {SimpleCache} from "./SimpleCache.js";
 import {Image} from "./Image.js";
 import {QueryBuilder} from "./QueryBuilder.js";
 import {Collections} from "./Collections.js";
@@ -69,11 +68,6 @@ import {Collections} from "./Collections.js";
  * @property {object[]} results - the documents part of this facet item.
  */
 
-export const DefaultCacheOptions = {
-    enabled: false,
-    ttl: 360,
-    cacheName: 'hippo-cache'
-};
 
 export class HippoConnection {
 
@@ -83,11 +77,6 @@ export class HippoConnection {
 	options;
 	axios;
 
-	/** @type {SimpleCache} */
-	cache;
-
-	cacheOptions;
-
 	/**
 	 * Initialise the hippo connection.
 	 *
@@ -95,24 +84,17 @@ export class HippoConnection {
 	 * @param userOrJwt	{string} the user to connect with, if password is null, this will have a JWT token.
 	 * @param password {?string} the password to connect with, if null `user` is sent as Bearer token.
 	 * @param options {object} options that we might use.
-     * @param options.cache {?object} contains caching options
-     * @param options.cache.enabled {?boolean} cache the results if set to true
-     * @param options.cache.ttl {?number} ttl for cache elements
 	 * @param options.hippoApi {string} path to built-in APIs
 	 * @param options.xinApi {string} path to custom APIs
 	 * @param options.assetPath {string} where to find images and assets
 	 * @param options.assetModPath {string} the prefix for modifying assets
 	 * @param options.cdnUrl {?string} custom URL for binaries (so it can go through something like CloudFront)
-     * @param options.cache.cacheName {string} name of the cache to use
 	 */
 	constructor(host, userOrJwt, password, options = {}) {
-
-	    this.cacheOptions = Object.assign({}, DefaultCacheOptions, options.cache || {});
 
 		this.host = host;
 		this.user = userOrJwt;
 		this.password = password;
-		this.cache = new SimpleCache(this.cacheOptions.cacheName, this.cacheOptions.enabled);
 
 		// setup axios settings based on the type of credentials that were provided.
 
@@ -205,16 +187,14 @@ export class HippoConnection {
 	 * List all collections currently available in the Bloomreach repository
 	 */
 	async listCollections() {
-		return this.cache.namedMethod('listCollections', [], async () => {
-			try {
-				const response = await this.axios.get(`${this.options.xinApi}/collections/list`);
-				return response.data.collections;
-			}
-			catch (err) {
-				console.error("couldn't retrieve list of collections", err);
-				return null;
-			}
-		});
+		try {
+			const response = await this.axios.get(`${this.options.xinApi}/collections/list`);
+			return response.data.collections;
+		}
+		catch (err) {
+			console.error("couldn't retrieve list of collections", err);
+			return null;
+		}
 	}
 
 
@@ -233,80 +213,78 @@ export class HippoConnection {
 	 */
 	async executeQuery(query, options = {}) {
 
-	    return this.cache.namedMethod('executeQuery', arguments, async () => {
-            const defaultOptions = {
-                namespace: false,
-                documents: true,
-				fetch: []
-            };
+		const defaultOptions = {
+			namespace: false,
+			documents: true,
+			fetch: []
+		};
 
-            const opts = Object.assign({}, defaultOptions, options);
+		const opts = Object.assign({}, defaultOptions, options);
 
-            try {
+		try {
 
-                const response =
-					await this.axios.get(`${this.options.xinApi}/content/query`, {
-							params: {
-								query,
-								fetch: opts.fetch
-							}
+			const response =
+				await this.axios.get(`${this.options.xinApi}/content/query`, {
+						params: {
+							query,
+							fetch: opts.fetch
 						}
-					);
+					}
+				);
 
-                if (!response || !response.data) {
-                    return null;
-                }
+			if (!response || !response.data) {
+				return null;
+			}
 
-                // if set to true and the response doesn't have any documents yet (old behaviour),
-				// let's go get the actual documents for this result.
-                if (opts.documents && !response.data.documents) {
+			// if set to true and the response doesn't have any documents yet (old behaviour),
+			// let's go get the actual documents for this result.
+			if (opts.documents && !response.data.documents) {
 
-                    response.data.documents = [];
+				response.data.documents = [];
 
-                    for (const resultRow of response.data.uuids) {
-                        const {uuid} = resultRow;
-                        const doc = await this.getDocumentByUuid(uuid, opts);
-                        response.data.documents.push(doc);
-                    }
-                }
-                else if (opts.documents) {
+				for (const resultRow of response.data.uuids) {
+					const {uuid} = resultRow;
+					const doc = await this.getDocumentByUuid(uuid, opts);
+					response.data.documents.push(doc);
+				}
+			}
+			else if (opts.documents) {
 
-                	for (const docIdx in response.data.documents) {
+				for (const docIdx in response.data.documents) {
 
-                		if (!response.data.documents.hasOwnProperty(docIdx)) {
-                			continue;
-						}
-
-						if (!opts.namespace) {
-							response.data.documents[docIdx] = this.sanitiseDocument(response.data.documents[docIdx]);
-						}
-
-						response.data.documents[docIdx].hippo = this;
+					if (!response.data.documents.hasOwnProperty(docIdx)) {
+						continue;
 					}
 
+					if (!opts.namespace) {
+						response.data.documents[docIdx] = this.sanitiseDocument(response.data.documents[docIdx]);
+					}
+
+					response.data.documents[docIdx].hippo = this;
 				}
 
-                return response.data;
-            }
-            catch (ex) {
+			}
 
-                if (!ex.response) {
-                    console.error("Something happened (perhaps backend is down?) ", ex);
-                    return;
-                }
+			return response.data;
+		}
+		catch (ex) {
 
-                if (ex.response.status === 401) {
-                    throw new Error("Unauthorized request", ex);
-                }
+			if (!ex.response) {
+				console.error("Something happened (perhaps backend is down?) ", ex);
+				return;
+			}
 
-                if (ex.response.status === 501) {
-                    console.log("Something wrong with the query, check Hippo CMS server logs for a detailed report.");
-                    throw new Error(ex.response.data.message);
-                }
+			if (ex.response.status === 401) {
+				throw new Error("Unauthorized request", ex);
+			}
 
-                throw ex;
-            }
-        }, this.cacheOptions.ttl);
+			if (ex.response.status === 501) {
+				console.log("Something wrong with the query, check Hippo CMS server logs for a detailed report.");
+				throw new Error(ex.response.data.message);
+			}
+
+			throw ex;
+		}
 
 
 	}
@@ -353,38 +331,36 @@ export class HippoConnection {
 	 * @param options.attributes {string[]?} the attributes to retrieve
 	 */
 	async getDocuments(options = {}) {
-	    return this.cache.namedMethod('getDocuments', arguments, async () => {
 
-            try {
+		try {
 
-                const response = await this.axios.get(`${this.options.hippoApi}/documents`, {
-                    params: {
-                        _offset: options.offset,
-                        _max: options.max,
-                        _orderBy: options.orderBy,
-                        _sortOrder: options.sortOrder,
-                        _nodetype: options.nodeType,
-                        _query: options.query
-                    }
-                });
+			const response = await this.axios.get(`${this.options.hippoApi}/documents`, {
+				params: {
+					_offset: options.offset,
+					_max: options.max,
+					_orderBy: options.orderBy,
+					_sortOrder: options.sortOrder,
+					_nodetype: options.nodeType,
+					_query: options.query
+				}
+			});
 
-                if (!response || !response.data) {
-                    return null;
-                }
+			if (!response || !response.data) {
+				return null;
+			}
 
-                const returnData = response.data;
-                returnData.hippo = this;
-                return returnData;
-            }
-            catch (ex) {
-                if (!ex.response) {
-                    console.error("Something happened (perhaps backend is down?)", ex);
-                }
-                if (ex.response.status === 401) {
-                    throw new Error("Unauthorized request", ex);
-                }
-            }
-        }, this.cacheOptions.ttl);
+			const returnData = response.data;
+			returnData.hippo = this;
+			return returnData;
+		}
+		catch (ex) {
+			if (!ex.response) {
+				console.error("Something happened (perhaps backend is down?)", ex);
+			}
+			if (ex.response.status === 401) {
+				throw new Error("Unauthorized request", ex);
+			}
+		}
 
 	}
 
@@ -412,55 +388,53 @@ export class HippoConnection {
 	 */
 	async getFacetAtPath(facetPath, childPath = null, options = {}) {
 
-		return this.cache.namedMethod('getFacetAtPath', arguments, async () => {
 
-			const defaults = {
-				namespace: false,
-				fetch: []
-			};
+		const defaults = {
+			namespace: false,
+			fetch: []
+		};
 
-			const opts = Object.assign({}, defaults, options);
+		const opts = Object.assign({}, defaults, options);
 
-			try {
-				const response =
-					await this.axios.get(`${this.options.xinApi}/facets/get`, {
-						params: {
-							facetPath,
-							childPath,
-							offset: opts.offset ?? 0,
-							limit: opts.limit ?? 50,
-							sorted: opts.sorted ?? false,
-							fetch: opts.fetch
-						}
-					});
+		try {
+			const response =
+				await this.axios.get(`${this.options.xinApi}/facets/get`, {
+					params: {
+						facetPath,
+						childPath,
+						offset: opts.offset ?? 0,
+						limit: opts.limit ?? 50,
+						sorted: opts.sorted ?? false,
+						fetch: opts.fetch
+					}
+				});
 
-				if (!response || !response.data) {
-					return null;
-				}
-
-				/** @type {FacetResponse} */
-				const result = response.data;
-
-				if (!opts.namespace) {
-					result.facet.results = (result.facet.results || []).map(doc => {
-						const convert = this.sanitiseDocument(doc);
-						convert.hippo = this;
-						return convert;
-					});
-				}
-
-				return result.facet;
+			if (!response || !response.data) {
+				return null;
 			}
-			catch (ex) {
-				console.log("Error: ", ex.message);
-				if (!ex.response) {
-					throw new Error("Backend didn't respond", ex);
-				}
-				if (ex.response.status === 401) {
-					throw new Error("Unauthorized request", ex);
-				}
+
+			/** @type {FacetResponse} */
+			const result = response.data;
+
+			if (!opts.namespace) {
+				result.facet.results = (result.facet.results || []).map(doc => {
+					const convert = this.sanitiseDocument(doc);
+					convert.hippo = this;
+					return convert;
+				});
 			}
-		}, this.cacheOptions.ttl);
+
+			return result.facet;
+		}
+		catch (ex) {
+			console.log("Error: ", ex.message);
+			if (!ex.response) {
+				throw new Error("Backend didn't respond", ex);
+			}
+			if (ex.response.status === 401) {
+				throw new Error("Unauthorized request", ex);
+			}
+		}
 
 	}
 
@@ -606,43 +580,40 @@ export class HippoConnection {
 	 * @returns {object?}
 	 */
 	async getDocumentByUuid(uuid, options = {}) {
-	    return this.cache.namedMethod('getDocumentByUuid', arguments, async () => {
 
-            const defaults = {
-                namespace: false,
-				fetch: []
-            };
+		const defaults = {
+			namespace: false,
+			fetch: []
+		};
 
-            const opts = Object.assign({}, defaults, options);
+		const opts = Object.assign({}, defaults, options);
 
-            try {
-                const response =
-					await this.axios.get(`${this.options.xinApi}/content/document-with-uuid`, {
-                		params: {
-                			uuid,
-							fetch: opts.fetch
-						}
-					});
+		try {
+			const response =
+				await this.axios.get(`${this.options.xinApi}/content/document-with-uuid`, {
+					params: {
+						uuid,
+						fetch: opts.fetch
+					}
+				});
 
-                if (!response || !response.data) {
-                    return null;
-                }
+			if (!response || !response.data) {
+				return null;
+			}
 
-                const doc = response.data.document;
-                const returnDoc = (opts.namespace ? doc : this.sanitiseDocument(doc));
-                returnDoc.hippo = this;
-                return returnDoc;
-            }
-            catch (ex) {
-                if (!ex.response) {
-                    throw new Error("Backend didn't respond", ex);
-                }
-                if (ex.response.status === 401) {
-                    throw new Error("Unauthorized request", ex);
-                }
-            }
-        }, this.cacheOptions.ttl);
-
+			const doc = response.data.document;
+			const returnDoc = (opts.namespace ? doc : this.sanitiseDocument(doc));
+			returnDoc.hippo = this;
+			return returnDoc;
+		}
+		catch (ex) {
+			if (!ex.response) {
+				throw new Error("Backend didn't respond", ex);
+			}
+			if (ex.response.status === 401) {
+				throw new Error("Unauthorized request", ex);
+			}
+		}
 
 	}
 
@@ -656,42 +627,40 @@ export class HippoConnection {
 	 * @returns {null|*}
 	 */
 	async getDocumentByPath(path, options = {}) {
-		return this.cache.namedMethod('getDocumentByPath', arguments, async () => {
 
-			try {
-				const defaults = {
-					namespace: false,
-					fetch: []
-				};
+		try {
+			const defaults = {
+				namespace: false,
+				fetch: []
+			};
 
-				const opts = Object.assign({}, defaults, options);
-				const response = await this.axios.get(
-					`${this.options.xinApi}/content/document-at-path`, {
-						params: {
-							path,
-							fetch: opts.fetch
-						}
+			const opts = Object.assign({}, defaults, options);
+			const response = await this.axios.get(
+				`${this.options.xinApi}/content/document-at-path`, {
+					params: {
+						path,
+						fetch: opts.fetch
 					}
-				);
+				}
+			);
 
-				if (!response || !response.data || !response.data.document) {
-					return null;
-				}
+			if (!response || !response.data || !response.data.document) {
+				return null;
+			}
 
-				const doc = response.data.document;
-				const returnDoc = (opts.namespace ? doc : this.sanitiseDocument(doc));
-				returnDoc.hippo = this;
-				return returnDoc;
+			const doc = response.data.document;
+			const returnDoc = (opts.namespace ? doc : this.sanitiseDocument(doc));
+			returnDoc.hippo = this;
+			return returnDoc;
+		}
+		catch (ex) {
+			if (!ex.response) {
+				throw new Error("Backend didn't respond", ex);
 			}
-			catch (ex) {
-				if (!ex.response) {
-					throw new Error("Backend didn't respond", ex);
-				}
-				if (ex.response.status === 401) {
-					throw new Error("Unauthorized request", ex);
-				}
+			if (ex.response.status === 401) {
+				throw new Error("Unauthorized request", ex);
 			}
-		}, this.cacheOptions.ttl);
+		}
 	}
 
 	/**
@@ -704,47 +673,45 @@ export class HippoConnection {
 	 * @returns {Promise<*[]>}
 	 */
 	async listDocuments(path, options = {}) {
-	    return this.cache.namedMethod('listDocuments', arguments, async () => {
-            try {
-                const response = await this.axios.get(`${this.options.xinApi}/content/documents-list`, {
-                    params: {
-                        path,
-						fetch: options.fetch
-                    }
-                });
-
-                if (!response || !response.data) {
-                    return null;
-                }
-
-                if (!response.data.success) {
-                    return null;
-                }
-
-                // add hippo
-                if (response.data.documents) {
-                	for (const docHandle of response.data.documents) {
-                		// clean up namespaces
-                		if (!options.keepNamespace) {
-                			docHandle.document = this.sanitiseDocument(docHandle.document);
-						}
-
-                		// put hippo instance in document
-						docHandle.document.hippo = this;
-					}
+		try {
+			const response = await this.axios.get(`${this.options.xinApi}/content/documents-list`, {
+				params: {
+					path,
+					fetch: options.fetch
 				}
+			});
 
-                return response.data;
-            }
-            catch (ex) {
-                if (!ex.response) {
-                    throw new Error("Backend didn't respond", ex);
-                }
-                if (ex.response.status === 401) {
-                    throw new Error("Unauthorized request", ex);
-                }
-            }
-        }, this.cacheOptions.ttl);
+			if (!response || !response.data) {
+				return null;
+			}
+
+			if (!response.data.success) {
+				return null;
+			}
+
+			// add hippo
+			if (response.data.documents) {
+				for (const docHandle of response.data.documents) {
+					// clean up namespaces
+					if (!options.keepNamespace) {
+						docHandle.document = this.sanitiseDocument(docHandle.document);
+					}
+
+					// put hippo instance in document
+					docHandle.document.hippo = this;
+				}
+			}
+
+			return response.data;
+		}
+		catch (ex) {
+			if (!ex.response) {
+				throw new Error("Backend didn't respond", ex);
+			}
+			if (ex.response.status === 401) {
+				throw new Error("Unauthorized request", ex);
+			}
+		}
 
 	}
 
@@ -753,33 +720,30 @@ export class HippoConnection {
 	 * Convert a UUID to a path.
 	 *
 	 * @param uuid	{string} the uuid to convert to a path
-	 * @returns {Promise<DocumentLocation>} the path it represents.
+	 * @returns {Promise<?DocumentLocation>} the path it represents.
 	 */
 	async uuidToPath(uuid) {
-        return this.cache.namedMethod('uuidToPath', arguments, async () => {
-            try {
-                const response = await this.axios.get(`${this.options.xinApi}/content/uuid-to-path`, {
-                    params: {
-                        uuid
-                    }
-                });
+		try {
+			const response = await this.axios.get(`${this.options.xinApi}/content/uuid-to-path`, {
+				params: {
+					uuid
+				}
+			});
 
-                if (!response || !response.data) {
-                    return null;
-                }
+			if (!response || !response.data) {
+				return null;
+			}
 
-                return response.data;
-            }
-            catch (ex) {
-                if (!ex.response) {
-                    throw new Error("Backend didn't respond", ex);
-                }
-                if (ex.response.status === 401) {
-                    throw new Error("Unauthorized request", ex);
-                }
-            }
-        }, this.cacheOptions.ttl);
-
+			return response.data;
+		}
+		catch (ex) {
+			if (!ex.response) {
+				throw new Error("Backend didn't respond", ex);
+			}
+			if (ex.response.status === 401) {
+				throw new Error("Unauthorized request", ex);
+			}
+		}
 
 	}
 
@@ -790,29 +754,28 @@ export class HippoConnection {
 	 * @returns {Promise<DocumentLocation>} is the uuid it represents.
 	 */
 	async pathToUuid(path) {
-	    return this.cache.namedMethod('pathToUuid', arguments, async () => {
-            try {
-                const response = await this.axios.get(`${this.options.xinApi}/content/path-to-uuid`, {
-                    params: {
-                        path
-                    }
-                });
+		
+		try {
+			const response = await this.axios.get(`${this.options.xinApi}/content/path-to-uuid`, {
+				params: {
+					path
+				}
+			});
 
-                if (!response || !response.data) {
-                    return null;
-                }
+			if (!response || !response.data) {
+				return null;
+			}
 
-                return response.data;
-            }
-            catch (ex) {
-                if (!ex.response) {
-                    throw new Error("Backend didn't respond", ex);
-                }
-                if (ex.response.status === 401) {
-                    throw new Error("Unauthorized request", ex);
-                }
-            }
-        }, this.cacheOptions.ttl);
+			return response.data;
+		}
+		catch (ex) {
+			if (!ex.response) {
+				throw new Error("Backend didn't respond", ex);
+			}
+			if (ex.response.status === 401) {
+				throw new Error("Unauthorized request", ex);
+			}
+		}
 
 	}
 
