@@ -11,12 +11,11 @@ export class Collections {
 	/**
 	 * Initialise data-members
 	 *
-	 * @param hippo	{HippoConnection} the hippo connection instance
+	 * @param hippo	{BloomreachConnection} the hippo connection instance
 	 * @param name {string} the collection name we're working with
 	 */
 	constructor(hippo, name) {
 		Object.defineProperty(this, 'hippo', {value: hippo, writable: false});
-		this.cache = hippo.cache;
 		this.name = name;
 	}
 
@@ -34,22 +33,20 @@ export class Collections {
 	 * @returns {Promise<*>}
 	 */
 	async get(path) {
-		return this.cache.namedMethod('collectionsGet', [this.name, path], async () => {
-			try {
-				const response = (
-					await this.hippo.axios.get(`${this.hippo.options.xinApi}/collections/${this.name}/item?path=${encodeURIComponent(path)}`)
-				);
+		try {
+			const response = (
+				await this.hippo.remoteRequests.get(`${this.hippo.options.xinApi}/collections/${this.name}/item?path=${encodeURIComponent(path)}`)
+			);
 
-				if (!response.data.success) {
-					return null;
-				}
-				return response.data.item;
-			}
-			catch (err) {
-				console.error("couldn't retrieve this item", err);
+			if (!response.data.success) {
 				return null;
 			}
-		});
+			return response.data.item;
+		}
+		catch (err) {
+			console.error("couldn't retrieve this item", err);
+			return null;
+		}
 	}
 
 	/**
@@ -62,7 +59,7 @@ export class Collections {
 	async delete(path, forceDelete = false) {
 		try {
 			const response = (
-				await this.hippo.axios.delete(
+				await this.hippo.remoteRequests.delete(
 					`${this.hippo.options.xinApi}/collections/${this.name}/item?path=${encodeURIComponent(path)}&forceDelete=${forceDelete ? 'true': 'false'}`
 				)
 			);
@@ -87,7 +84,7 @@ export class Collections {
 		try {
 			const values = this.serialise(object);
 
-			const result = await this.hippo.axios.post(
+			const result = await this.hippo.remoteRequests.post(
 				`${this.hippo.options.xinApi}/collections/${this.name}/item?path=${encodeURIComponent(path)}`, {
 					saveMode,
 					values

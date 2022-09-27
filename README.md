@@ -10,7 +10,7 @@ NOTE: This is the ESM version of the previous CommonJS implementation of the `xi
 
 Use the library simply by including it into your `package.json`.
 
-To connect to your Hippo REST layer create a `HippoConnection` object like this, simply
+To connect to your Hippo REST layer create a `BloomreachConnection` object like this, simply
 input the correct URL at which the tomcat context lives, and a user that is either `admin`
 or member of the `restuser` group:
 
@@ -34,7 +34,7 @@ If caching is enabled the cache layer relies on the following environment variab
 * `CACHE_TTL`; ttl in seconds
 * `CACHE_DEBUG`; show state of cache when hit/stored.
         
-The `HippoConnection` object has a number of useful functions:
+The `BloomreachConnection` object has a number of useful functions:
 
 * `getDocumentByUuid(uuid)`; get the document at UUID 
 * `listDocuments(path)`; list documents and folders at a certain path
@@ -149,7 +149,7 @@ etc. XIN Mods adds this functionality out-of-the-box, called "Asset Mods".
 
 We can tap into this by using the `Image` object.
 
-The `HippoConnection` class exposes two useful methods. One interacts with Image Link field types, the
+The `BloomreachConnection` class exposes two useful methods. One interacts with Image Link field types, the
 other works directly off of the binary's UUID in the JCR -- the first uses the latter to work correctly.
 
 To retrieve a file from an image link, and add modifications to the object use it like this: 
@@ -240,7 +240,7 @@ Hope that helps.
 
 ## Faceted Navigation
 
-To interact with faceted navigation nodes in the brXM JCR you can use the HippoConnection function `getFacetAtPath`. It 
+To interact with faceted navigation nodes in the brXM JCR you can use the BloomreachConnection function `getFacetAtPath`. It 
 will retrieve information about a faceted navigation node. 
 
 
@@ -274,7 +274,7 @@ The `FacetItem` object has the following structure:
 ```
 /**
  * @typedef FacetItem
- * @property {HippoConnection} hippo - the connection used to retrieve the information
+ * @property {BloomreachConnection} hippo - the connection used to retrieve the information
  * @property {string} sourceFacet - the base node of this facet
  * @property {string} facetPath - the path we've queried for
  * @property {string} displayName - the name of the current facet

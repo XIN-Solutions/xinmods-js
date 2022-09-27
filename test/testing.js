@@ -5,7 +5,7 @@ describe("Rudimentary tests", async () => {
 	it("should call into some functions", async () => {
 		
 		/**
-		 * @type {HippoConnection}
+		 * @type {BloomreachConnection}
 		 */
 		const hippo = mod.connectTo('http://localhost:8080', 'admin', 'admin');
 		

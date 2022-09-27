@@ -13,7 +13,7 @@ export class QueryBuilder {
 	/**
 	 * Initialise the query builder
 	 *
-	 * @param hippo {HippoConnection} connection instance
+	 * @param hippo {BloomreachConnection} connection instance
 	 */
 	constructor(hippo) {
 		Object.defineProperty(this, 'hippo', {value: hippo, writable: false});

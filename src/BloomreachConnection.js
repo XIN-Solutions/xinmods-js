@@ -14,9 +14,7 @@
  */
 
 
-import AxiosRetry from 'axios-retry';
-import AxiosModule from 'axios';
-import * as qs from 'qs';
+import {RemoteRequests} from "./RemoteRequests.js";
 
 import {Image} from "./Image.js";
 import {QueryBuilder} from "./QueryBuilder.js";
@@ -59,7 +57,7 @@ import {Collections} from "./Collections.js";
 
 /**
  * @typedef FacetItem
- * @property {HippoConnection} hippo - the connection used to retrieve the information
+ * @property {BloomreachConnection} hippo - the connection used to retrieve the information
  * @property {string} sourceFacet - the base node of this facet
  * @property {string} facetPath - the path we've queried for
  * @property {string} displayName - the name of the current facet
@@ -69,13 +67,13 @@ import {Collections} from "./Collections.js";
  */
 
 
-export class HippoConnection {
+export class BloomreachConnection {
 
 	host;
 	user;
 	password;
 	options;
-	axios;
+	remoteRequests;
 
 	/**
 	 * Initialise the hippo connection.
@@ -89,6 +87,7 @@ export class HippoConnection {
 	 * @param options.assetPath {string} where to find images and assets
 	 * @param options.assetModPath {string} the prefix for modifying assets
 	 * @param options.cdnUrl {?string} custom URL for binaries (so it can go through something like CloudFront)
+	 * @param options.apiType {'fetch'|'axios'} which API to use to connect to the API.
 	 */
 	constructor(host, userOrJwt, password, options = {}) {
 
@@ -96,27 +95,9 @@ export class HippoConnection {
 		this.user = userOrJwt;
 		this.password = password;
 
-		// setup axios settings based on the type of credentials that were provided.
-
-		const axiosSettings = Object.assign(
-			{
-				baseURL: this.host,
-				paramsSerializer(params) {
-					return qs.stringify(params, {
-						indices: false,
-					});
-				}
-			},
-			this.password? { auth: { username: this.user, password: this.password } } : {},
-			!this.password? { headers: { "Authorization" : "Bearer " + this.user } } : {}
-		)
-
-		this.axios = AxiosModule.create(axiosSettings);
-
-		// add retry behaviours
-		AxiosRetry(this.axios, { retries: 3, retryDelay: AxiosRetry.exponentialDelay });
-
 		this.options = Object.assign({}, options || {});
+		
+		this.remoteRequests = new RemoteRequests(options.apiType, host, userOrJwt, password, options);
 	}
 
 	/**
@@ -188,7 +169,7 @@ export class HippoConnection {
 	 */
 	async listCollections() {
 		try {
-			const response = await this.axios.get(`${this.options.xinApi}/collections/list`);
+			const response = await this.remoteRequests.get(`${this.options.xinApi}/collections/list`);
 			return response.data.collections;
 		}
 		catch (err) {
@@ -224,7 +205,7 @@ export class HippoConnection {
 		try {
 
 			const response =
-				await this.axios.get(`${this.options.xinApi}/content/query`, {
+				await this.remoteRequests.get(`${this.options.xinApi}/content/query`, {
 						params: {
 							query,
 							fetch: opts.fetch
@@ -334,7 +315,7 @@ export class HippoConnection {
 
 		try {
 
-			const response = await this.axios.get(`${this.options.hippoApi}/documents`, {
+			const response = await this.remoteRequests.get(`${this.options.hippoApi}/documents`, {
 				params: {
 					_offset: options.offset,
 					_max: options.max,
@@ -398,7 +379,7 @@ export class HippoConnection {
 
 		try {
 			const response =
-				await this.axios.get(`${this.options.xinApi}/facets/get`, {
+				await this.remoteRequests.get(`${this.options.xinApi}/facets/get`, {
 					params: {
 						facetPath,
 						childPath,
@@ -590,7 +571,7 @@ export class HippoConnection {
 
 		try {
 			const response =
-				await this.axios.get(`${this.options.xinApi}/content/document-with-uuid`, {
+				await this.remoteRequests.get(`${this.options.xinApi}/content/document-with-uuid`, {
 					params: {
 						uuid,
 						fetch: opts.fetch
@@ -635,7 +616,7 @@ export class HippoConnection {
 			};
 
 			const opts = Object.assign({}, defaults, options);
-			const response = await this.axios.get(
+			const response = await this.remoteRequests.get(
 				`${this.options.xinApi}/content/document-at-path`, {
 					params: {
 						path,
@@ -674,7 +655,7 @@ export class HippoConnection {
 	 */
 	async listDocuments(path, options = {}) {
 		try {
-			const response = await this.axios.get(`${this.options.xinApi}/content/documents-list`, {
+			const response = await this.remoteRequests.get(`${this.options.xinApi}/content/documents-list`, {
 				params: {
 					path,
 					fetch: options.fetch
@@ -724,7 +705,7 @@ export class HippoConnection {
 	 */
 	async uuidToPath(uuid) {
 		try {
-			const response = await this.axios.get(`${this.options.xinApi}/content/uuid-to-path`, {
+			const response = await this.remoteRequests.get(`${this.options.xinApi}/content/uuid-to-path`, {
 				params: {
 					uuid
 				}
@@ -756,7 +737,7 @@ export class HippoConnection {
 	async pathToUuid(path) {
 		
 		try {
-			const response = await this.axios.get(`${this.options.xinApi}/content/path-to-uuid`, {
+			const response = await this.remoteRequests.get(`${this.options.xinApi}/content/path-to-uuid`, {
 				params: {
 					path
 				}

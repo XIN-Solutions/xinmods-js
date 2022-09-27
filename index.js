@@ -11,7 +11,7 @@
 		a set of functions that allow you to interact with the REST API.
  */
 
-import { HippoConnection} from "./src/HippoConnection.js";
+import { BloomreachConnection} from "./src/BloomreachConnection.js";
 
 export {Image} from "./src/Image.js";
 
@@ -20,6 +20,8 @@ export const LocalOptions = {
 	enabled: false,
 	ttl: 360,
 	cacheName: 'hippo-cache',
+	
+	apiType: 'axios',
 	
 	hippoApi: '/site/api',
 	xinApi: '/site/custom-api',
@@ -34,6 +36,7 @@ export const DeployedOptions = {
 	enabled: false,
 	ttl: 360,
 	cacheName: 'hippo-cache',
+	apiType: 'axios',
 	
 	hippoApi: '/api',
 	xinApi: '/api/xin',
@@ -43,6 +46,13 @@ export const DeployedOptions = {
 	
 };
 
+export function xinmodsReplacer(key, val) {
+	if (key === 'hippo') {
+		return undefined;
+	}
+	return val;
+}
+
 
 /**
  * Create a connection object for hippo operations.
@@ -51,9 +61,9 @@ export const DeployedOptions = {
  * @param user	the username to authentication with
  * @param password the password to use for authentication
  * @param options misc options that might have something later.
- *
- * @returns {HippoConnection}
+ * @param options.apiType {'fetch'|'axios'} which API to use to connect to the API.
+ * @returns {BloomreachConnection}
  */
 export function connectTo(url, user, password, options = LocalOptions) {
-	return new HippoConnection(url, user, password, options);
+	return new BloomreachConnection(url, user, password, options);
 }
