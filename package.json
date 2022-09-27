@@ -1,6 +1,6 @@
 {
 	"name": "xinmods",
-	"version": "2.0.3",
+	"version": "2.0.4",
 	"description": "Javascript implementation for XIN Mods CMS REST interactions (ESM)",
 	"main": "index.js",
 	"type": "module",
