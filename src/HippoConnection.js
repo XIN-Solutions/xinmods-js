@@ -358,7 +358,7 @@ export class HippoConnection {
 				console.error("Something happened (perhaps backend is down?)", ex);
 			}
 			if (ex.response.status === 401) {
-				throw new Error("Unauthorized request", ex);
+				throw new Error("Unauthorized request: " + ex.message);
 			}
 		}
 
@@ -429,10 +429,10 @@ export class HippoConnection {
 		catch (ex) {
 			console.log("Error: ", ex.message);
 			if (!ex.response) {
-				throw new Error("Backend didn't respond", ex);
+				throw new Error("Backend didn't respond: " + ex.message);
 			}
 			if (ex.response.status === 401) {
-				throw new Error("Unauthorized request", ex);
+				throw new Error("Unauthorized request: " + ex.message);
 			}
 		}
 
@@ -608,10 +608,10 @@ export class HippoConnection {
 		}
 		catch (ex) {
 			if (!ex.response) {
-				throw new Error("Backend didn't respond", ex);
+				throw new Error("Backend didn't respond: " + ex.message);
 			}
 			if (ex.response.status === 401) {
-				throw new Error("Unauthorized request", ex);
+				throw new Error("Unauthorized request: " + ex.message);
 			}
 		}
 
@@ -655,10 +655,10 @@ export class HippoConnection {
 		}
 		catch (ex) {
 			if (!ex.response) {
-				throw new Error("Backend didn't respond", ex);
+				throw new Error("Backend didn't respond: " + ex.message);
 			}
 			if (ex.response.status === 401) {
-				throw new Error("Unauthorized request", ex);
+				throw new Error("Unauthorized request: " + ex.message);
 			}
 		}
 	}
@@ -706,10 +706,10 @@ export class HippoConnection {
 		}
 		catch (ex) {
 			if (!ex.response) {
-				throw new Error("Backend didn't respond", ex);
+				throw new Error("Backend didn't respond: " + ex.message);
 			}
 			if (ex.response.status === 401) {
-				throw new Error("Unauthorized request", ex);
+				throw new Error("Unauthorized request: " + ex.message);
 			}
 		}
 
@@ -738,10 +738,10 @@ export class HippoConnection {
 		}
 		catch (ex) {
 			if (!ex.response) {
-				throw new Error("Backend didn't respond", ex);
+				throw new Error("Backend didn't respond: " + ex.message);
 			}
 			if (ex.response.status === 401) {
-				throw new Error("Unauthorized request", ex);
+				throw new Error("Unauthorized request: " + ex.message);
 			}
 		}
 
@@ -770,10 +770,10 @@ export class HippoConnection {
 		}
 		catch (ex) {
 			if (!ex.response) {
-				throw new Error("Backend didn't respond", ex);
+				throw new Error("Backend didn't respond: " + ex.message);
 			}
 			if (ex.response.status === 401) {
-				throw new Error("Unauthorized request", ex);
+				throw new Error("Unauthorized request: " + ex.message);
 			}
 		}
 
