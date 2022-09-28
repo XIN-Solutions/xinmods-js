@@ -6,6 +6,9 @@ A package that interfaces with REST endpoints found in Bloomreach Hippo CMS with
 NOTE: This is the ESM version of the previous CommonJS implementation of the `xinmods` package. Use the latest in the 
 `1.x` version range if you're after the CommonJS version.  
 
+NOTE 2: This version no longer offers caching for API responses out of the box, it didn't seem
+like a good idea to force end-users to use a specific technology. 
+
 ## How to use
 
 Use the library simply by including it into your `package.json`.
@@ -14,26 +17,32 @@ To connect to your Hippo REST layer create a `BloomreachConnection` object like 
 input the correct URL at which the tomcat context lives, and a user that is either `admin`
 or member of the `restuser` group:
 
-    const xinmods = require('xinmods');
-    
-    // you don't have to specify these as they are the default values.
-    // when you deploy to a proper instance you probably want to change these values.
-    const options = {
-        hippoApi: '/site/api',
-        xinApi: '/site/custom-api',
-        assetPath: '/site/binaries',
-        assetModPath: '/site/assetmod',
-        
-        caching: true|false,
-    };
-       
-    const hippo = xinmods.connectTo('http://localhost:8080', 'admin', 'admin', options);
-        
-If caching is enabled the cache layer relies on the following environment variables to change its behaviour:
+To create a connection to a deployed CMS use `DeployedOptions`:
 
-* `CACHE_TTL`; ttl in seconds
-* `CACHE_DEBUG`; show state of cache when hit/stored.
-        
+    import {connectTo, DeployedOptions, xinmodsReplacer} from "xinmods";
+
+    const conn = connectTo(
+        'https://cms.yourdomain.com', 'admin', '<password>', {
+            ...DeployedOptions,
+            apiType: 'fetch',
+        }
+    );
+
+If you're connecting to a local Bloomreach XM instance run up with Maven use `LocalOptions`:
+
+    import {connectTo, LocalOptions, xinmodsReplacer} from "xinmods";
+
+    const conn = connectTo(
+        'https://cms.yourdomain.com', 'admin', '<password>', {
+            ...LocalOptions,
+            apiType: 'fetch',
+        }
+    );
+
+You can specify the `apiType`, this will impact whether `axios` is being used to fetch information, or `fetch`. Certain
+environments do not support `axios`, while others do not support `fetch`. This will let you pick the correct one. 
+
+
 The `BloomreachConnection` object has a number of useful functions:
 
 * `getDocumentByUuid(uuid)`; get the document at UUID 
@@ -47,31 +56,31 @@ The `BloomreachConnection` object has a number of useful functions:
 Find their usages below:
     
     // get a document by its UUID
-	const doc = await hippo.getDocumentByUuid("c0c9833c-144a-40a1-a5ba-2fd49aeebe98");
+	const doc = await conn.getDocumentByUuid("c0c9833c-144a-40a1-a5ba-2fd49aeebe98");
 	console.log("Retrieved a document:", doc);
 
     // get a list of folder and documents (one level deep) at a particular path 
-	const list = await hippo.listDocuments("/content/documents/site/articles");
+	const list = await conn.listDocuments("/content/documents/site/articles");
 	console.log("Retrieved a folder:", list);
 
     // convert a uuid to its path in the Hippo CMS
-	const {path} = await hippo.uuidToPath("c0c9833c-144a-40a1-a5ba-2fd49aeebe98");
+	const {path} = await conn.uuidToPath("c0c9833c-144a-40a1-a5ba-2fd49aeebe98");
 	console.log("Path for uuid: ", path);
 
     // convert a path to uuid
-	const {uuid} = await hippo.pathToUuid(path);
+	const {uuid} = await conn.pathToUuid(path);
 	console.log("Uuid: ", uuid);
 
     // get a document that lives at a certain path
     // calls the hippo default /site/api/documents/{uuid} (based on the path) endpoint
-	const docByPath = await hippo.getDocumentByPath(path);
+	const docByPath = await conn.getDocumentByPath(path);
 	console.log("Doc:", docByPath);
 	
 	// this will get rid of all the namespace names in documents
-	const sanitisedDoc = hippo.sanitiseDocument(docByPath);
+	const sanitisedDoc = conn.sanitiseDocument(docByPath);
 
     // calls the hippo default /site/api/documents endpoint
-	const docs = await hippo.getDocuments({
+	const docs = await conn.getDocuments({
         offset: 0,
         max: 10,
         
@@ -94,7 +103,7 @@ There is a `QueryBuilder` that can build the query string using a fluid notation
 A complicated query looks like this:
     
     const queryString =
-        hippo.newQuery()
+        conn.newQuery()
             .type('test:article').withSubtypes()
             .includePath("/content/documents/site/articles")
             .includePath('/content/anotherpath')
@@ -118,7 +127,7 @@ A complicated query looks like this:
 	console.log("QUERY:\n", queryString);
 	
 	const qResult =
-		await hippo.executeQuery(queryString, {
+		await conn.executeQuery(queryString, {
 		    // set to true if you want to keep the namespace in the results
 			namespace: true,
 			
@@ -141,6 +150,12 @@ Operators that are available:
 * `.lte` (lower than or equal to)
 * `.and()`, `.or()` compound operators
 
+
+To learn more about this check these tutorials:
+
+* https://marnixkok.nl/news/bloomreach-xm-tutorials/using-queries-to-retrieve-documents-using-bloomreach-xm-and-xin-mods
+* https://marnixkok.nl/news/bloomreach-xm-tutorials/building-dynamic-queries-using-bloomreach-xm-and-xin-mods
+
 ### Asset Mods
 
 Hippo CMS comes ships with a Digital Asset Manager (DAM) that is great for serving out files.
@@ -154,8 +169,8 @@ other works directly off of the binary's UUID in the JCR -- the first uses the l
 
 To retrieve a file from an image link, and add modifications to the object use it like this: 
     
-    const doc = await hippo.getDocumentByUuid("c0c9833c-144a-40a1-a5ba-2fd49aeebe98");
-    const image = await hippo.getImageFromLink(doc.items.heroImage);
+    const doc = await conn.getDocumentByUuid("c0c9833c-144a-40a1-a5ba-2fd49aeebe98");
+    const image = await conn.getImageFromLink(doc.items.heroImage);
     console.log("Binary path: ", image.toUrl());
     console.log("Asset mod path: ", image.scaleWidth(320).crop(320, 240).toUrl());
  
@@ -171,6 +186,26 @@ Available operations are:
 * `image.brighter(nTimes)`; brightens the image a certain amount, this can be applied multiple times at once
 * `image.darker(nTimes)`; darkens the image a certain amount, this can be applied multiples times at once.
 
+To learn more about this check this tutorial:
+
+* https://marnixkok.nl/news/bloomreach-xm-tutorials/loading-and-manipulating-images
+* https://marnixkok.nl/news/bloomreach-xm-tutorials/creating-and-retrieving-an-asset-using-bloomreach-xm-and-xin-mods
+
+
+## Content Prefetching
+
+If want to reduce the amount of API calls you have to make, you can use prefetching. Most operations described above
+take a `fetch: []` argument in their `options` argument.
+
+The `fetch` value can contain an array of strings that will match against parts of the payload response. If a match is
+found, the thing be referenced at that point (image, asset, related document) will be included in the response. This will
+prevent you from having to go back to the CMS in a separate request to get related elements.
+
+To learn more about this check this tutorial:
+
+* https://marnixkok.nl/news/bloomreach-xm-tutorials/prefetching-content-from-bloomreach-xm-using-xin-mods
+
+
 ## Collections
 
 The XIN Mods contains functionality called `collections`. It's an easy way to push new information into the JCR without
@@ -178,16 +213,21 @@ worrying about that state of the document, having to create new folders or other
 simple key-value store APIs such as Google's Firestore.
 
 Find a small snippet of code below that illustrates different aspects of how to interact with the collections endpoints.
-    
-    const xinmods = require('xinmods');
 
-    const hippo = xinmods.connectTo('http://localhost:8080', 'admin', 'admin');
+    import {connectTo, LocalOptions, xinmodsReplacer} from "xinmods";
 
-    const allCollections = await hippo.listCollections();
+    const conn = connectTo(
+        'https://cms.yourdomain.com', 'admin', '<password>', {
+            ...LocalOptions,
+            apiType: 'fetch',
+        }
+    );
+
+    const allCollections = await conn.listCollections();
     console.log("Collections:" , allCollections);
  
     // get a Collections instance   
-    const coll = hippo.collection('your-collection');
+    const coll = conn.collection('your-collection');
 
     // retrieve an item from this collection
     const itemValues = await coll.get("new-folder/an-item-address");
@@ -226,17 +266,21 @@ Find a small snippet of code below that illustrates different aspects of how to 
     // You can also query the collection. Fields are written to the node using the
     // xinmods: namespace.
     const query = (
-        hippo.collection('attendance').query()
+        conn.collection('attendance').query()
             .where()
                 .gte("xinmods:age", 5)
             .end()
         .build()
     );
 
-    const results = await hippo.executeQuery(query);
+    const results = await conn.executeQuery(query);
     console.log(results);
 
 Hope that helps. 
+
+To learn more about this check this tutorial:
+
+* https://marnixkok.nl/news/bloomreach-xm-tutorials/xin-mods-collections-api-writing-documents-into-bloomreach-xm
 
 ## Faceted Navigation
 
@@ -244,7 +288,7 @@ To interact with faceted navigation nodes in the brXM JCR you can use the Bloomr
 will retrieve information about a faceted navigation node. 
 
 
-    hippo.getFacetAtPath("/content/facets/specs", "Carrier Signals", {fetch: ["images/*/link"]})
+    conn.getFacetAtPath("/content/facets/specs", "Carrier Signals", {fetch: ["images/*/link"]})
         .then(result => console.log(result))
         .catch( err => console.error(err))
     ;
@@ -284,12 +328,16 @@ The `FacetItem` object has the following structure:
  */
 ```
 
+To learn more about this check this tutorial:
+
+* https://marnixkok.nl/news/bloomreach-xm-tutorials/restructure-your-bloomreach-xm-content-by-using-faceted-navigation
+
 
 ## XIN Mods
   
-A headless CMS, Content as a Service (CaaS) solution for Bloomreach Hippo.
+A headless CMS, Content as a Service (CaaS) solution for Bloomreach conn.
 
-The XIN mods are a set of tools that turn a vanilla Bloomreach Hippo CMS install into an 
+The XIN mods are a set of tools that turn a vanilla Bloomreach CMS install into an 
 easy-to-deploy and throw-away Content as a Service instance that you can use to 
 quickly model and query information in your repository with!
 
@@ -312,12 +360,14 @@ the excellent Hippo CMS APIs.
 XIN Mods makes it so that your CMS isn't the center of the universe, instead it will 
 simply a cog in a larger machine.
 
-Powerful REST APIs extensions connect you to the CMS in an easy to understand way.
+Powerful REST APIs extensions connect you to the CMS in an easy-to-understand way.
 
-In short, the XIN Mods let Bloomreach's Hippo CMS fit into the bigger picture of organisations
+In short, the XIN Mods let BloomReach's CMS fit into the bigger picture of organisations
 that already have a wealth of infrastructure without requiring the entire ecosystem to 
 bend to its needs.
 
 ### Read More
 
-[Read more about XIN Mods here](https://xinsolutions.co.nz/bloomreach-hippo-cms-caas). 
+[Read more about XIN Mods here](https://xinsolutions.co.nz/bloomreach-headless-cms-caas). 
+
+[Watch a bunch of tutorials about XIN Mods here](https://marnixkok.nl/tutorials)
