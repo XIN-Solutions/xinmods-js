@@ -555,7 +555,7 @@ class HippoConnection {
 			return new Image(this, imageLink.link.ref, imageLink.link.ref);
 		}
 
-		console.error("error: could not load image link without pre-populated reference.")
+		// console.log("error: could not load image link without pre-populated reference.")
 		return null;
 	}
 

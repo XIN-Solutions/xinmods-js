@@ -20,7 +20,7 @@ async function runTests() {
 			.lte('xinmods:age', 50)
 	;
 
-	const queryStr = compounQ.where().and(familiarName, ageRange).end().build();
+	const queryStr = compoundQ.where().and(familiarName, ageRange).end().build();
 	console.log(queryStr);
 
 	const docs = await hippo.getDocuments({
