@@ -10,10 +10,9 @@
 		To provide access into Hippo CMS instance that uses XIN Mods. It exposes
 		a set of functions that allow you to interact with the REST API.
  */
+
 var HippoConnection = require('./HippoConnection.js');
-
 var Image = require('./Image.js');
-
 module.exports = {
   /**
    * Create a connection object for hippo operations.
